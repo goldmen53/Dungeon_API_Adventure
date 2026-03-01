@@ -224,8 +224,6 @@ def get_all_monsters(session: Session = Depends(get_session)):
     
     return monsters
 
-
-
 @app.get("/world/explore/{hero_name}")
 def explore(hero_name: str, session: Session = Depends(get_session)):
     # 1. Ищем героя
@@ -355,7 +353,12 @@ def get_hero_map(name: str, session: Session = Depends(get_session)):
 
     visible_map = []
     # Показываем текущий этаж и +4 вперед
-    for f in range(0 ,10 ):
+    if hero.current_room < 10:
+        map = 0
+    else:
+        map = (hero.current_room //10 )*10
+    
+    for f in range( map,map+10 ):
         floor_data = {
             "floor": f"F{f}",
             "lanes": {
@@ -392,3 +395,42 @@ def get_room_type(floor: int, lane: int, seed: int) -> str:
     if roll < 0.75: return "E"  # 15% событие
     if roll < 0.90: return "S"   # 15% магазин
     return "R"                  # 10% отдых
+
+@app.post("/heroes/{name}/move")
+def move_hero(name: str, target_lane: int, session: Session = Depends(get_session)):
+    # 1. Ищем героя
+    hero = session.exec(select(Hero).where(Hero.name == name)).first()
+    if not hero:
+        raise HTTPException(status_code=404, detail="Герой не найден")
+
+    # 2. Проверяем допустимость дорожки (всего три: 0, 1, 2)
+    if target_lane not in [0, 1, 2]:
+        raise HTTPException(status_code=400, detail="Такой дорожки не существует")
+
+    # 3. Логика допустимых переходов (нельзя прыгнуть с 0 на 2 сразу)
+    allowed_lanes = [hero.current_lane, hero.current_lane - 1, hero.current_lane + 1]
+    
+    if target_lane not in allowed_lanes:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Вы не можете перейти с дорожки {hero.current_lane} на {target_lane}"
+        )
+
+    # 4. Двигаем героя вперед на один этаж
+    hero.current_room += 1
+    hero.current_lane = target_lane
+    
+    # 5. Получаем тип новой комнаты (чтобы сразу сказать игроку, куда он попал)
+    # Функцию get_room_type мы написали в прошлом шаге
+    room_type = get_room_type(hero.current_room, hero.current_lane, hero.world_seed)
+
+    session.add(hero)
+    session.commit()
+    session.refresh(hero)
+
+    return {
+        "message": "Вы продвинулись глубже",
+        "current_position": {"floor": hero.current_room, "lane": hero.current_lane},
+        "room_type": room_type,
+        "description": f"Вы вошли в комнату типа {room_type}"
+    }
