@@ -350,3 +350,22 @@ def battle_round(hero_name: str, monster_id: int, session: Session = Depends(get
     session.commit()
     return {"status": "CONTINUE", "log": log}
     
+def get_room_type(floor: int, lane: int, seed: int) -> str:
+    # Создаем уникальный сид для этой конкретной точки пространства
+    # Чтобы комнаты на разных этажах не повторялись предсказуемо
+    point_seed = f"{seed}-{floor}-{lane}"
+    random.seed(point_seed)
+    
+    # Правило 1: Босс каждый 10-й этаж и этаж перед посом всегда отдых
+    if floor > 0 and floor % 10 == 0:
+        return "BOSS"
+    if floor > 0 and floor % 9 == 0:
+        return "R"
+    
+    # Правило 2: Распределение типов комнат
+    # 'B' - Battle, 'S' - Shop, 'R' - Rest, 'E' - Event/Question
+    roll = random.random()
+    if roll < 0.6: return "B"   # 60% шанс битвы
+    if roll < 0.75: return "E"  # 15% событие
+    if roll < 0.90: return "S"   # 15% магазин
+    return "R"                  # 10% отдых
