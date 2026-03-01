@@ -3,32 +3,38 @@ from typing import Optional, List
 import random
 
 # --- БАЗОВЫЙ КЛАСС (Общие поля для всех) ---
-class HeroBase(SQLModel, table=True):
-    name: str = Field(index=True)
-    level: int = Field(default=1)
-    xp: int = Field(default=0)
+class Hero(SQLModel, table=True):
+    # Первичный ключ (обязательно для table=True)
+    id: Optional[int] = Field(default=None, primary_key=True)
+    
+    name: str = Field(index=True, unique=True)
     
     # Характеристики
-    strength: int = Field(default=10)   # STR - урон воина
-    dexterity: int = Field(default=10)  # DEX - урон разбойника
-    vitality: int = Field(default=10)   # VIT - дает HP
-    intelligence: int = Field(default=10) # INT - дает MP и урон мага
-    agility: int = Field(default=10)    # AGI - шанс уворота
-
-    # Состояние
-    max_hp: int = Field(default=100)
-    current_hp: int = Field(default=100)
-    max_mp: int = Field(default=20)
-    current_mp: int = Field(default=20)
+    strength: int = 10
+    dexterity: int = 10
+    intelligence: int = 10
+    agility: int = 10
+    vitality: int = 10
     
-    gold: int = Field(default=0)
+    hp: int = 100
+    max_hp: int = 100
+    
+    level: int = 1
+    xp: int = 0
+    gold: int = 0
+
+    # Поля для генерации карты
+    # По умолчанию создаем случайный сид при рождении героя
+    world_seed: int = Field(default_factory=lambda: random.randint(1, 999999))
+    current_room: int = 0  # Этаж (F0, F1...)
+    current_lane: int = 1  # Дорожка (0, 1, 2)
 
     # ГЕОГРАФИЯ
 
     world_seed: int = Field(default_factory=lambda: random.randint(1, 999999))
     current_room: int = 0  # Этаж (F1, F2...)
     current_lane: int = 1  # Дорожка (0 - лево, 1 - центр, 2 - право)
-    
+
 class Monster(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
@@ -47,13 +53,7 @@ class Monster(SQLModel, table=True):
     
     xp_reward: int = Field(default=20)  
 
-    # --- ТАБЛИЦА В БД (Наследуемся от базового класса) ---
-class Hero(HeroBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    hero_class: str  # "warrior", "mage", "rogue"
-    
-    # Здесь в будущем будут связи:
-    # inventory: List["Item"] = Relationship(back_populates="owner")
+
 
 class HeroUpdate(SQLModel):
     # Все поля Optional. Если мы их не прислали в JSON, они будут None

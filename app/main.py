@@ -18,23 +18,25 @@ def welcome():
 
 # Эндпоинт для создания героя
 @app.post("/heroes/create")
-def create_hero(name: str, char_class: str, session: Session = Depends(get_session)):
-    # Логика начальных статов
-    stats = {"strength": 10, "vitality": 10, "intelligence": 10}
-    
-    if char_class == "warrior":
-        stats["strength"] += 5
-        stats["vitality"] += 5
-    elif char_class == "mage":
-        stats["intelligence"] += 10
-        stats["vitality"] -= 2
+def create_hero(name: str, session: Session = Depends(get_session)):
+    # Проверяем, нет ли уже такого имени
+    existing = session.exec(select(Hero).where(Hero.name == name)).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Это имя уже занято")
 
-    new_hero = Hero(name=name, hero_class=char_class, **stats)
+    # Создаем героя. world_seed сгенерируется сам благодаря Field(default_factory)
+    new_hero = Hero(name=name)
     
     session.add(new_hero)
     session.commit()
     session.refresh(new_hero)
-    return new_hero
+    
+    return {
+        "message": f"Герой {new_hero.name} вошел в подземелье!",
+        "hero_id": new_hero.id,
+        "world_seed": new_hero.world_seed,
+        "start_position": f"Floor: {new_hero.current_room}, Lane: {new_hero.current_lane}"
+    }
 
 @app.get("/heroes/{name}")
 def get_hero_status(name: str, session: Session = Depends(get_session)):
@@ -50,17 +52,12 @@ def get_hero_status(name: str, session: Session = Depends(get_session)):
     
     return hero
 
-@app.get('/heroes/')
+@app.get("/heroes/")
 def get_all_heroes(session: Session = Depends(get_session)):
-
+    # Важно: select(Hero) работает только если у Hero стоит table=True
     statement = select(Hero)
-
-    hero = session.exec(statement).all()
-
-    if not hero : 
-        raise HTTPException(status_code=404, detail="Нет доступных героев")
-    
-    return hero
+    heroes = session.exec(statement).all()
+    return heroes
 
 @app.delete('/heroes/{name}')
 def delete_hero(name:str, session: Session = Depends(get_session)):
@@ -350,6 +347,32 @@ def battle_round(hero_name: str, monster_id: int, session: Session = Depends(get
     session.commit()
     return {"status": "CONTINUE", "log": log}
     
+@app.get("/heroes/{name}/map")
+def get_hero_map(name: str, session: Session = Depends(get_session)):
+    hero = session.exec(select(Hero).where(Hero.name == name)).first()
+    if not hero:
+        raise HTTPException(status_code=404, detail="Герой не найден")
+
+    visible_map = []
+    # Показываем текущий этаж и +4 вперед
+    for f in range(0 ,10 ):
+        floor_data = {
+            "floor": f"F{f}",
+            "lanes": {
+                "Left (0)": get_room_type(f, 0, hero.world_seed),
+                "Center (1)": get_room_type(f, 1, hero.world_seed),
+                "Right (2)": get_room_type(f, 2, hero.world_seed)
+            },
+            "is_current": f == hero.current_room
+        }
+        visible_map.append(floor_data)
+        
+    return {
+        "hero_position": {"floor": hero.current_room, "lane": hero.current_lane},
+        "map_preview": visible_map
+    }
+
+
 def get_room_type(floor: int, lane: int, seed: int) -> str:
     # Создаем уникальный сид для этой конкретной точки пространства
     # Чтобы комнаты на разных этажах не повторялись предсказуемо
