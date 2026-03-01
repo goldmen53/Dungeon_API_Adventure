@@ -1,8 +1,9 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List
+import random
 
 # --- БАЗОВЫЙ КЛАСС (Общие поля для всех) ---
-class HeroBase(SQLModel):
+class HeroBase(SQLModel, table=True):
     name: str = Field(index=True)
     level: int = Field(default=1)
     xp: int = Field(default=0)
@@ -22,6 +23,12 @@ class HeroBase(SQLModel):
     
     gold: int = Field(default=0)
 
+    # ГЕОГРАФИЯ
+
+    world_seed: int = Field(default_factory=lambda: random.randint(1, 999999))
+    current_room: int = 0  # Этаж (F1, F2...)
+    current_lane: int = 1  # Дорожка (0 - лево, 1 - центр, 2 - право)
+    
 class Monster(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str

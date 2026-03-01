@@ -5,7 +5,7 @@ from app.database import init_db, get_session
 from app.models import Hero, HeroUpdate, Monster, MonsterUpdate
 from sqlmodel import Session, select 
 
-app = FastAPI(title="Dungeon Crawler")
+app = FastAPI(title="Dungeon_API_Adventure")
 
 # Запускаем создание таблиц при старте
 @app.on_event("startup")
