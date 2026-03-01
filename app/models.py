@@ -1,0 +1,75 @@
+from sqlmodel import SQLModel, Field, Relationship
+from typing import Optional, List
+
+# --- БАЗОВЫЙ КЛАСС (Общие поля для всех) ---
+class HeroBase(SQLModel):
+    name: str = Field(index=True)
+    level: int = Field(default=1)
+    xp: int = Field(default=0)
+    
+    # Характеристики
+    strength: int = Field(default=10)   # STR - урон воина
+    dexterity: int = Field(default=10)  # DEX - урон разбойника
+    vitality: int = Field(default=10)   # VIT - дает HP
+    intelligence: int = Field(default=10) # INT - дает MP и урон мага
+    agility: int = Field(default=10)    # AGI - шанс уворота
+
+    # Состояние
+    max_hp: int = Field(default=100)
+    current_hp: int = Field(default=100)
+    max_mp: int = Field(default=20)
+    current_mp: int = Field(default=20)
+    
+    gold: int = Field(default=0)
+
+class Monster(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    level: int = Field(default=1)
+    
+    # Характеристики
+    max_hp: int = Field(default=50)
+    current_hp: int = Field(default=50)
+    
+    # Диапазоны (вместо фиксированных чисел)
+    min_attack: int = Field(default=5)
+    max_attack: int = Field(default=10)
+    
+    min_gold: int = Field(default=1)
+    max_gold: int = Field(default=10)
+    
+    xp_reward: int = Field(default=20)  
+
+    # --- ТАБЛИЦА В БД (Наследуемся от базового класса) ---
+class Hero(HeroBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    hero_class: str  # "warrior", "mage", "rogue"
+    
+    # Здесь в будущем будут связи:
+    # inventory: List["Item"] = Relationship(back_populates="owner")
+
+class HeroUpdate(SQLModel):
+    # Все поля Optional. Если мы их не прислали в JSON, они будут None
+    strength: Optional[int] = None
+    vitality: Optional[int] = None
+    dexterity: Optional[int] = None
+    intelligence: Optional[int] = None
+    agility: Optional[int] = None
+    current_hp: Optional[int] = None
+    gold: Optional[int] = None
+    xp: Optional[int] = None
+    level: Optional[int] = None
+    max_hp: Optional[int] = None
+    max_mp: Optional[int] = None
+    current_mp: Optional[int] = None
+
+class MonsterUpdate(SQLModel):
+    level: Optional[int] = None
+    max_hp: Optional[int] = None
+    current_hp: Optional[int] = None
+    min_attack: Optional[int] = None
+    max_attack: Optional[int] = None
+    min_gold: Optional[int] = None
+    max_gold: Optional[int] = None
+    xp_reward: Optional[int] = None
+
