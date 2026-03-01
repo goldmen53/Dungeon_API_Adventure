@@ -4,6 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from app.database import init_db, get_session
 from app.models import Hero, HeroUpdate, Monster, MonsterUpdate
 from sqlmodel import Session, select 
+from app.monsters import create_monster_params
 
 app = FastAPI(title="Dungeon_API_Adventure")
 

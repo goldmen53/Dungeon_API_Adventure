@@ -39,18 +39,14 @@ class Monster(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     level: int = Field(default=1)
-    
     # Характеристики
     max_hp: int = Field(default=50)
     current_hp: int = Field(default=50)
-    
     # Диапазоны (вместо фиксированных чисел)
     min_attack: int = Field(default=5)
     max_attack: int = Field(default=10)
-    
     min_gold: int = Field(default=1)
     max_gold: int = Field(default=10)
-    
     xp_reward: int = Field(default=20)  
 
 
