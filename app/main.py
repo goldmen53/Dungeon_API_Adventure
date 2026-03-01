@@ -225,7 +225,6 @@ def get_all_monsters(session: Session = Depends(get_session)):
     
     return monsters
 
-
     
 @app.get("/heroes/{name}/map")
 def get_hero_map(name: str, session: Session = Depends(get_session)):
@@ -320,14 +319,15 @@ def get_room_type(floor: int, lane: int, seed: int) -> str:
 @app.post("/heroes/{name}/move")
 def move_hero(name: str, target_lane: int, session: Session = Depends(get_session)):
     hero = session.exec(select(Hero).where(Hero.name == name)).first()
-    #замок
+    
+    # ПРОВЕРКА БОЯ
     if hero.active_monster_id:
-    # Пытаемся найти этого монстра
         monster = session.get(Monster, hero.active_monster_id)
-    if monster and monster.current_hp > 0:
-        raise HTTPException(status_code=400, detail="Дорогу преграждает монстр! Вы не можете уйти.")
-    hero.current_room += 1
-    hero.current_lane = target_lane
+        if monster and monster.current_hp > 0:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Вы не можете уйти, пока жив {monster.name}!"
+            )
     
     room_type = get_room_type(hero.current_room, hero.current_lane, hero.world_seed)
 
@@ -354,4 +354,68 @@ def move_hero(name: str, target_lane: int, session: Session = Depends(get_sessio
         "event": "Вы встретили врага!" if hero.active_monster_id else "Вы вошли в мирную зону",
         "room_type": room_type,
         "monster": m_params if hero.active_monster_id else None
+    }
+
+@app.post("/battle/attack")
+def attack_monster(hero_name: str, session: Session = Depends(get_session)):
+    # 1. Ищем героя
+    hero = session.exec(select(Hero).where(Hero.name == hero_name)).first()
+    if not hero or not hero.active_monster_id:
+        raise HTTPException(status_code=400, detail="У вас нет активного противника")
+
+    # 2. Ищем монстра
+    monster = session.get(Monster, hero.active_monster_id)
+    if not monster or monster.current_hp <= 0:
+        # Если монстр уже мертв, но ID остался — зачищаем ID
+        hero.active_monster_id = None
+        session.add(hero)
+        session.commit()
+        raise HTTPException(status_code=400, detail="Противник уже повержен")
+
+    # --- ХОД ГЕРОЯ ---
+    # Урон героя (пока привяжем к силе strength)
+    hero_damage = random.randint(hero.strength, hero.strength + 5)
+    monster.current_hp -= hero_damage
+    log = [f"Вы ударили {monster.name} на {hero_damage} урона."]
+
+    # Проверка смерти монстра
+    if monster.current_hp <= 0:
+        monster.current_hp = 0
+        # Выдаем награду
+        gold_gain = random.randint(monster.min_gold, monster.max_gold)
+        hero.gold += gold_gain
+        hero.xp += monster.xp_reward
+        hero.active_monster_id = None # Путь свободен
+        
+        session.add(monster)
+        session.add(hero)
+        session.commit()
+        
+        log.append(f"{monster.name} убит! Вы получили {gold_gain} золота и {monster.xp_reward} опыта.")
+        return {"status": "victory", "log": log, "hero": hero}
+
+    # --- ХОД МОНСТРА ---
+    # Если выжил, бьет в ответ
+    monster_damage = random.randint(monster.min_attack, monster.max_attack)
+    hero.hp -= monster_damage
+    log.append(f"{monster.name} атакует вас на {monster_damage} урона.")
+
+    # Проверка смерти героя
+    if hero.hp <= 0:
+        hero.hp = 0
+        # Здесь потом будет логика смерти (телепортация в город или удаление)
+        log.append("Вы погибли!")
+        status = "defeat"
+    else:
+        status = "ongoing"
+
+    session.add(monster)
+    session.add(hero)
+    session.commit()
+
+    return {
+        "status": status,
+        "log": log,
+        "hero_hp": f"{hero.hp}/{hero.max_hp}",
+        "monster_hp": f"{monster.current_hp}/{monster.max_hp}"
     }
