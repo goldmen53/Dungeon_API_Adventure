@@ -277,50 +277,15 @@ def get_room_type(floor: int, lane: int, seed: int) -> str:
     if roll < 0.90: return "S"   # 15% магазин
     return "R"                  # 10% отдых
 
-# @app.post("/heroes/{name}/move")
-# def move_hero(name: str, target_lane: int, session: Session = Depends(get_session)):
-#     # 1. Ищем героя
-#     hero = session.exec(select(Hero).where(Hero.name == name)).first()
-#     if not hero:
-#         raise HTTPException(status_code=404, detail="Герой не найден")
 
-#     # 2. Проверяем допустимость дорожки (всего три: 0, 1, 2)
-#     if target_lane not in [0, 1, 2]:
-#         raise HTTPException(status_code=400, detail="Такой дорожки не существует")
-
-#     # 3. Логика допустимых переходов (нельзя прыгнуть с 0 на 2 сразу)
-#     allowed_lanes = [hero.current_lane, hero.current_lane - 1, hero.current_lane + 1]
-    
-#     if target_lane not in allowed_lanes:
-#         raise HTTPException(
-#             status_code=400, 
-#             detail=f"Вы не можете перейти с дорожки {hero.current_lane} на {target_lane}"
-#         )
-
-#     # 4. Двигаем героя вперед на один этаж
-#     hero.current_room += 1
-#     hero.current_lane = target_lane
-    
-#     # 5. Получаем тип новой комнаты (чтобы сразу сказать игроку, куда он попал)
-#     # Функцию get_room_type мы написали в прошлом шаге
-#     room_type = get_room_type(hero.current_room, hero.current_lane, hero.world_seed)
-
-#     session.add(hero)
-#     session.commit()
-#     session.refresh(hero)
-
-#     return {
-#         "message": "Вы продвинулись глубже",
-#         "current_position": {"floor": hero.current_room, "lane": hero.current_lane},
-#         "room_type": room_type,
-#         "description": f"Вы вошли в комнату типа {room_type}"
-#     }
 
 @app.post("/heroes/{name}/move")
 def move_hero(name: str, target_lane: int, session: Session = Depends(get_session)):
     hero = session.exec(select(Hero).where(Hero.name == name)).first()
-    
-    # ПРОВЕРКА БОЯ
+    if not hero:
+        raise HTTPException(status_code=404, detail="Герой не найден")
+
+    # 1. Сначала ПРОВЕРКА БОЯ (нельзя уйти из текущей комнаты, если там враг)
     if hero.active_monster_id:
         monster = session.get(Monster, hero.active_monster_id)
         if monster and monster.current_hp > 0:
@@ -328,32 +293,39 @@ def move_hero(name: str, target_lane: int, session: Session = Depends(get_sessio
                 status_code=400, 
                 detail=f"Вы не можете уйти, пока жив {monster.name}!"
             )
+
+    # 2. ПРОВЕРКА ДОРОЖКИ (можно только на соседние)
+    allowed_lanes = [hero.current_lane, hero.current_lane - 1, hero.current_lane + 1]
+    if target_lane not in allowed_lanes or target_lane not in [0, 1, 2]:
+         raise HTTPException(status_code=400, detail="Недопустимый переход")
+
+    # 3. ШАГ ВПЕРЕД (Меняем координаты ПЕРЕД генерацией типа комнаты)
+    hero.current_room += 1
+    hero.current_lane = target_lane
     
+    # 4. ОПРЕДЕЛЯЕМ ТИП НОВОЙ КОМНАТЫ
     room_type = get_room_type(hero.current_room, hero.current_lane, hero.world_seed)
 
-    # ЛОГИКА СПАВНА
+    # 5. ЛОГИКА СПАВНА
+    m_params = None
     if room_type == "B" or room_type == "BOSS":
-        # Генерируем параметры для нового монстра
         m_params = create_monster_params(hero.current_room, is_boss=(room_type == "BOSS"))
-        
-        # Создаем объект Monster в базе
         new_monster = Monster(**m_params)
         session.add(new_monster)
-        session.flush() # Получаем ID монстра до коммита
-        
-        # Привязываем монстра к герою
+        session.flush() 
         hero.active_monster_id = new_monster.id
     else:
-        # Если зашли не в битву, очищаем активного монстра
         hero.active_monster_id = None
 
     session.add(hero)
     session.commit()
+    session.refresh(hero)
     
     return {
         "event": "Вы встретили врага!" if hero.active_monster_id else "Вы вошли в мирную зону",
+        "current_floor": hero.current_room,
         "room_type": room_type,
-        "monster": m_params if hero.active_monster_id else None
+        "monster": m_params
     }
 
 @app.post("/battle/attack")

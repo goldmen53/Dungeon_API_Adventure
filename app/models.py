@@ -34,6 +34,7 @@ class Hero(SQLModel, table=True):
     world_seed: int = Field(default_factory=lambda: random.randint(1, 999999))
     current_room: int = 0  # Этаж (F1, F2...)
     current_lane: int = 1  # Дорожка (0 - лево, 1 - центр, 2 - право)
+    active_monster_id: Optional[int] = Field(default=None, nullable=True)
 
 class Monster(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -48,7 +49,6 @@ class Monster(SQLModel, table=True):
     min_gold: int = Field(default=1)
     max_gold: int = Field(default=10)
     xp_reward: int = Field(default=20)  
-
 
 
 class HeroUpdate(SQLModel):
