@@ -435,3 +435,42 @@ def move_hero(name: str, target_lane: int, session: Session = Depends(get_sessio
         "room_type": room_type,
         "description": f"Вы вошли в комнату типа {room_type}"
     }
+
+@app.post("/heroes/{name}/move")
+def move_hero(name: str, target_lane: int, session: Session = Depends(get_session)):
+    hero = session.exec(select(Hero).where(Hero.name == name)).first()
+    #замок
+    if hero.active_monster_id:
+    # Пытаемся найти этого монстра
+        monster = session.get(Monster, hero.active_monster_id)
+    if monster and monster.current_hp > 0:
+        raise HTTPException(status_code=400, detail="Дорогу преграждает монстр! Вы не можете уйти.")
+    hero.current_room += 1
+    hero.current_lane = target_lane
+    
+    room_type = get_room_type(hero.current_room, hero.current_lane, hero.world_seed)
+
+    # ЛОГИКА СПАВНА
+    if room_type == "B" or room_type == "BOSS":
+        # Генерируем параметры для нового монстра
+        m_params = create_monster_params(hero.current_room, is_boss=(room_type == "BOSS"))
+        
+        # Создаем объект Monster в базе
+        new_monster = Monster(**m_params)
+        session.add(new_monster)
+        session.flush() # Получаем ID монстра до коммита
+        
+        # Привязываем монстра к герою
+        hero.active_monster_id = new_monster.id
+    else:
+        # Если зашли не в битву, очищаем активного монстра
+        hero.active_monster_id = None
+
+    session.add(hero)
+    session.commit()
+    
+    return {
+        "event": "Вы встретили врага!" if hero.active_monster_id else "Вы вошли в мирную зону",
+        "room_type": room_type,
+        "monster": m_params if hero.active_monster_id else None
+    }
