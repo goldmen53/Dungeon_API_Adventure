@@ -225,126 +225,7 @@ def get_all_monsters(session: Session = Depends(get_session)):
     
     return monsters
 
-@app.get("/world/explore/{hero_name}")
-def explore(hero_name: str, session: Session = Depends(get_session)):
-    # 1. Ищем героя
-    hero = session.exec(select(Hero).where(Hero.name == hero_name)).first()
-    if not hero:
-        raise HTTPException(status_code=404, detail="Герой не найден")
 
-    ## 2. Берем случайного монстра, подходящего по уровню (+-1)
-    # Формируем запрос с фильтрацией
-    statement = (
-        select(Monster)
-        .where(Monster.level >= hero.level - 1) # Минимум (уровень героя - 1)
-        .where(Monster.level <= hero.level + 1) # Максимум (уровень героя + 1)
-        .order_by(func.random())
-        .limit(1)
-    )
-    
-    monster = session.exec(statement).first()
-
-    if not monster:
-        return {
-            "message": f"В этой части подземелья слишком спокойно для героя {hero.level} уровня. Монстров подходящей силы не нашлось."
-        }
-    return {
-        "event": f"Из тени появляется {monster.name}!",
-        "hero_level": hero.level,
-        "monster_level": monster.level,
-        "monster_stats": {
-            "hp": monster.max_hp,
-            "attack": f"{monster.min_attack}-{monster.max_attack}"
-        }
-    }
-
-@app.post("/battle/attack/{hero_name}/{monster_id}")
-def battle_round(hero_name: str, monster_id: int, session: Session = Depends(get_session)):
-    # 1. Загружаем участников
-    hero = session.exec(select(Hero).where(Hero.name == hero_name)).first()
-    monster = session.exec(select(Monster).where(Monster.id == monster_id)).first()
-
-    if not hero or not monster:
-        raise HTTPException(status_code=404, detail="Участники боя не найдены")
-
-    log = [] # Сюда будем записывать ход боя для f-строки
-
-    # 2. Определяем очередность (Инициатива)
-    hero_goes_first = hero.level >= monster.level
-
-    def hero_attack():
-        # Формула: STR + random(DEX/2)
-        dex_bonus = random.randrange(max(1, hero.dexterity // 2))
-        damage = hero.strength + dex_bonus
-        
-        # Проверка на уклонение монстра (допустим у моба 5% фикс или добавим ему agi позже)
-        monster.current_hp -= damage
-        log.append(f"⚔️ {hero.name} наносит {damage} урона! (HP моба: {max(0, monster.current_hp)})")
-
-    def monster_attack():
-        # Проверка на уклонение героя: 1 AGI = 1% шанса
-        if random.randint(1, 100) <= hero.agility:
-            log.append(f"💨 {hero.name} изящно уклонился от атаки {monster.name}!")
-            return
-
-        damage = random.randint(monster.min_attack, monster.max_attack)
-        hero.current_hp -= damage
-        log.append(f"💥 {monster.name} кусает за бочок на {damage} урона! (Твое HP: {max(0, hero.current_hp)})")
-
-    # --- САМ БОЙ (Один раунд) ---
-    if hero_goes_first:
-        hero_attack()
-        if monster.current_hp > 0:
-            monster_attack()
-    else:
-        monster_attack()
-        if hero.current_hp > 0:
-            hero_attack()
-
-    # 3. ПРОВЕРКА ИСХОДА
-    
-    # ЕСЛИ УМЕР ГЕРОЙ
-    if hero.current_hp <= 0:
-        hero_name = hero.name
-        session.delete(hero) # "Hardcore" режим - удаляем из базы
-        session.commit()
-        return {"status": "DEATH", "log": log, "message": f"💀 Герой {hero_name} пал в бою. Игра окончена."}
-
-    # ЕСЛИ УМЕР МОНСТР
-    if monster.current_hp <= 0:
-        gold_gain = random.randint(monster.min_gold, monster.max_gold)
-        hero.gold += gold_gain
-        hero.xp += monster.xp_reward
-        
-        # Логика Level Up (упрощенно: каждые 100 XP - новый уровень)
-        lvl_up_msg = ""
-        if hero.xp >= hero.level * 100:
-            hero.level += 1
-            hero.dexterity+=1
-            hero.agility+=1
-            hero.strength+=1
-            hero.intelligence+=1
-            hero.vitality+=1
-            hero.max_hp += 20
-            hero.current_hp = hero.max_hp # Лечим при апе
-            lvl_up_msg = f" 🎉 УРОВЕНЬ ПОВЫШЕН! Теперь ты {hero.level} уровня!"
-
-        # Сбрасываем HP монстра для следующей встречи (т.к. мы используем шаблон из базы)
-        monster.current_hp = monster.max_hp
-        
-        session.add(hero)
-        session.commit()
-        return {
-            "status": "VICTORY", 
-            "log": log, 
-            "reward": f"💰 +{gold_gain} золота, ✨ +{monster.xp_reward} опыта.{lvl_up_msg}"
-        }
-
-    # ЕСЛИ ОБА ЖИВЫ
-    session.add(hero)
-    session.add(monster)
-    session.commit()
-    return {"status": "CONTINUE", "log": log}
     
 @app.get("/heroes/{name}/map")
 def get_hero_map(name: str, session: Session = Depends(get_session)):
@@ -397,44 +278,44 @@ def get_room_type(floor: int, lane: int, seed: int) -> str:
     if roll < 0.90: return "S"   # 15% магазин
     return "R"                  # 10% отдых
 
-@app.post("/heroes/{name}/move")
-def move_hero(name: str, target_lane: int, session: Session = Depends(get_session)):
-    # 1. Ищем героя
-    hero = session.exec(select(Hero).where(Hero.name == name)).first()
-    if not hero:
-        raise HTTPException(status_code=404, detail="Герой не найден")
+# @app.post("/heroes/{name}/move")
+# def move_hero(name: str, target_lane: int, session: Session = Depends(get_session)):
+#     # 1. Ищем героя
+#     hero = session.exec(select(Hero).where(Hero.name == name)).first()
+#     if not hero:
+#         raise HTTPException(status_code=404, detail="Герой не найден")
 
-    # 2. Проверяем допустимость дорожки (всего три: 0, 1, 2)
-    if target_lane not in [0, 1, 2]:
-        raise HTTPException(status_code=400, detail="Такой дорожки не существует")
+#     # 2. Проверяем допустимость дорожки (всего три: 0, 1, 2)
+#     if target_lane not in [0, 1, 2]:
+#         raise HTTPException(status_code=400, detail="Такой дорожки не существует")
 
-    # 3. Логика допустимых переходов (нельзя прыгнуть с 0 на 2 сразу)
-    allowed_lanes = [hero.current_lane, hero.current_lane - 1, hero.current_lane + 1]
+#     # 3. Логика допустимых переходов (нельзя прыгнуть с 0 на 2 сразу)
+#     allowed_lanes = [hero.current_lane, hero.current_lane - 1, hero.current_lane + 1]
     
-    if target_lane not in allowed_lanes:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Вы не можете перейти с дорожки {hero.current_lane} на {target_lane}"
-        )
+#     if target_lane not in allowed_lanes:
+#         raise HTTPException(
+#             status_code=400, 
+#             detail=f"Вы не можете перейти с дорожки {hero.current_lane} на {target_lane}"
+#         )
 
-    # 4. Двигаем героя вперед на один этаж
-    hero.current_room += 1
-    hero.current_lane = target_lane
+#     # 4. Двигаем героя вперед на один этаж
+#     hero.current_room += 1
+#     hero.current_lane = target_lane
     
-    # 5. Получаем тип новой комнаты (чтобы сразу сказать игроку, куда он попал)
-    # Функцию get_room_type мы написали в прошлом шаге
-    room_type = get_room_type(hero.current_room, hero.current_lane, hero.world_seed)
+#     # 5. Получаем тип новой комнаты (чтобы сразу сказать игроку, куда он попал)
+#     # Функцию get_room_type мы написали в прошлом шаге
+#     room_type = get_room_type(hero.current_room, hero.current_lane, hero.world_seed)
 
-    session.add(hero)
-    session.commit()
-    session.refresh(hero)
+#     session.add(hero)
+#     session.commit()
+#     session.refresh(hero)
 
-    return {
-        "message": "Вы продвинулись глубже",
-        "current_position": {"floor": hero.current_room, "lane": hero.current_lane},
-        "room_type": room_type,
-        "description": f"Вы вошли в комнату типа {room_type}"
-    }
+#     return {
+#         "message": "Вы продвинулись глубже",
+#         "current_position": {"floor": hero.current_room, "lane": hero.current_lane},
+#         "room_type": room_type,
+#         "description": f"Вы вошли в комнату типа {room_type}"
+#     }
 
 @app.post("/heroes/{name}/move")
 def move_hero(name: str, target_lane: int, session: Session = Depends(get_session)):
