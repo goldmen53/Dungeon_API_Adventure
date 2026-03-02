@@ -6,6 +6,7 @@ from app.models import Hero, HeroUpdate, Monster, MonsterUpdate
 from sqlmodel import Session, select 
 from app.monsters import create_monster_params
 
+
 app = FastAPI(title="Dungeon_API_Adventure")
 
 # Запускаем создание таблиц при старте
@@ -103,23 +104,45 @@ def update_hero(name: str, hero_data: HeroUpdate, session: Session = Depends(get
     session.refresh(db_hero)
     return db_hero
 
-@app.post("/heroes/{name}/full_heal")
-def hero_full_heal(name: str, session: Session = Depends(get_session)):
+@app.post("/heroes/{name}/rest")  # Переименуем для атмосферности
+def hero_rest(name: str, session: Session = Depends(get_session)):
+    # 1. Загружаем героя из базы
     hero = session.exec(select(Hero).where(Hero.name == name)).first()
+    if not hero:
+        raise HTTPException(status_code=404, detail="Герой не найден")
     
+    # 2. ОПРЕДЕЛЯЕМ ТИП ТЕКУЩЕЙ ЛОКАЦИИ
+    # Мы используем те же координаты и сид, что и при движении
+    current_room_type = get_room_type(hero.current_room, hero.current_lane, hero.world_seed)
+    
+    # 3. ПРОВЕРКА: Находимся ли мы в зоне отдыха?
+    if current_room_type != "R":
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Здесь опасно! Вы не можете отдыхать в комнате типа '{current_room_type}'"
+        )
+    
+    # 4. ПРОВЕРКА ЗОЛОТА И ЗДОРОВЬЯ
     heal_cost = 10
     if hero.gold < heal_cost:
-        raise HTTPException(status_code=400, detail="Нужно больше золота!")
+        raise HTTPException(status_code=400, detail="Нужно больше золота для припасов!")
     
     if hero.hp == hero.max_hp:
-        return {"message": "Герой уже полностью здоров"}
+        return {"message": "Вы полны сил и не нуждаетесь в отдыхе."}
 
+    # 5. ПРИМЕНЕНИЕ ЭФФЕКТОВ
     hero.gold -= heal_cost
-    hero.hp = hero.max_hp # Лечим до максимума
+    hero.hp = hero.max_hp 
     
+    # 6. СОХРАНЕНИЕ
     session.add(hero)
     session.commit()
-    return {"message": "Вы провели ночь в Таверне.  Здоровье полностью восстановлено.", "gold_left": hero.gold}
+    
+    return {
+        "message": "Вы разбили лагерь и восстановили силы.",
+        "hp": f"{hero.hp}/{hero.max_hp}",
+        "gold_left": hero.gold
+    }
 
 @app.post("/heroes/{name}/spell/heal")
 def spell_heal(name: str, session: Session = Depends(get_session)):
