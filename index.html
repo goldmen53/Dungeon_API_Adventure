@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Dungeon Crawler</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #game-container {
+            width: 100%;
+            max-width: 800px;
+            border: 2px solid #00ff00;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #1e1e1e;
+        }
+        h1 { text-align: center; margin-top: 0; text-transform: uppercase; }
+        .panel { border: 1px dashed #555; padding: 10px; margin-bottom: 15px; }
+        .flex-row { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
+        input, button {
+            background-color: #000;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 10px 15px;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background-color: #00ff00; color: #000; }
+        button:disabled { border-color: #555; color: #555; cursor: not-allowed; }
+        #log {
+            height: 300px;
+            overflow-y: auto;
+            background-color: #000;
+            padding: 10px;
+            border: 1px solid #555;
+            font-size: 14px;
+            color: #aaa;
+        }
+        .log-entry { margin-bottom: 5px; border-bottom: 1px dotted #333; padding-bottom: 5px; }
+        .log-success { color: #00ff00; }
+        .log-error { color: #ff3333; }
+        .log-combat { color: #ffaa00; }
+
+        
+        #map-container {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column-reverse; /* Чтобы нижние этажи были внизу */
+        gap: 5px;
+        background: #000;
+        padding: 15px;
+        border: 1px solid #444;
+        }
+
+        .map-floor {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            border-bottom: 1px solid #222;
+        }
+        .map-floor.current {
+            background-color: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00ff00;
+        }
+        .lane-node {
+            width: 60px;
+            text-align: center;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            font-size: 20px;
+        }
+        .lane-node.active-position {
+            background-color: #00ff00;
+            color: #000;
+            box-shadow: 0 0 10px #00ff00;
+        }
+        .floor-label { width: 40px; color: #888; font-size: 12px; }
+
+
+
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <h1>⚔️ Dungeon Crawler ⚔️</h1>
+    
+    <div class="panel flex-row">
+        <input type="text" id="heroName" placeholder="Имя героя" value="Yevhen">
+        <button onclick="createHero()">Создать героя</button>
+    </div>
+
+    <div class="panel flex-row">
+        <button onclick="move(0)">Лево (0)</button>
+        <button onclick="move(1)">Прямо (1)</button>
+        <button onclick="move(2)">Право (2)</button>
+    </div>
+
+    <div class="panel flex-row">
+        <button onclick="attack()" style="border-color: #ffaa00; color: #ffaa00;">⚔️ Атаковать</button>
+        <button onclick="rest()" style="border-color: #33ccff; color: #33ccff;">🏕️ Отдохнуть</button>
+    </div>
+    <div class="panel">
+    <div class="flex-row">
+        <button onclick="updateMap()" style="background: #333;">🗺️ Обновить карту</button>
+    </div>
+    <div id="map-container">
+        </div>
+</div>
+
+    <h3>Журнал событий:</h3>
+    <div id="log"></div>
+</div>
+
+<script>
+    const API_URL = ""; // Пусто, так как мы стучимся на тот же сервер
+    
+    function addLog(message, type = 'normal') {
+        const logDiv = document.getElementById('log');
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        
+        if(type === 'error') entry.classList.add('log-error');
+        if(type === 'success') entry.classList.add('log-success');
+        if(type === 'combat') entry.classList.add('log-combat');
+
+        // Если это объект (JSON), форматируем его красиво
+        if (typeof message === 'object') {
+            entry.innerHTML = `<pre style="margin:0">${JSON.stringify(message, null, 2)}</pre>`;
+        } else {
+            entry.textContent = `> ${message}`;
+        }
+        
+        logDiv.appendChild(entry);
+        logDiv.scrollTop = logDiv.scrollHeight; // Скроллинг вниз
+    }
+
+    async function apiCall(method, endpoint) {
+        try {
+            const response = await fetch(API_URL + endpoint, { method: method });
+            const data = await response.json();
+            
+            if (!response.ok) {
+                addLog(`Ошибка: ${data.detail || JSON.stringify(data)}`, 'error');
+                return null;
+            }
+            return data;
+        } catch (error) {
+            addLog(`Сетевая ошибка: ${error}`, 'error');
+            return null;
+        }
+    }
+
+    async function createHero() {
+        const name = document.getElementById('heroName').value;
+        if(!name) return addLog("Введите имя героя!", 'error');
+        
+        addLog(`Попытка создать героя ${name}...`);
+        const res = await apiCall('POST', `/heroes/create?name=${name}`);
+        if(res) addLog(res, 'success');
+        await updateMap();
+    }
+
+    async function move(lane) {
+        const name = document.getElementById('heroName').value;
+        addLog(`Идем на дорожку ${lane}...`);
+        const res = await apiCall('POST', `/heroes/${name}/move?target_lane=${lane}`);
+        if(res) addLog(res, 'normal');
+        await updateMap();
+    }
+
+    async function attack() {
+        const name = document.getElementById('heroName').value;
+        addLog(`Атакуем...`, 'combat');
+        const res = await apiCall('POST', `/battle/attack?hero_name=${name}`);
+        if(res) addLog(res, 'combat');
+    }
+
+    async function rest() {
+        const name = document.getElementById('heroName').value;
+        addLog(`Пытаемся отдохнуть...`);
+        const res = await apiCall('POST', `/heroes/${name}/rest`);
+        if(res) addLog(res, 'success');
+    }
+
+    const ROOM_ICONS = {
+    'B': '⚔️', // Battle
+    'R': '🏕️', // Rest
+    'S': '💰', // Shop
+    'T': '🛡️', // Treasure
+    'BOSS': '👹' // Boss
+};
+
+async function updateMap() {
+    const name = document.getElementById('heroName').value;
+    const data = await apiCall('GET', `/heroes/${name}/map`);
+    if (!data) return;
+
+    const container = document.getElementById('map-container');
+    container.innerHTML = ''; // Очистка
+
+    data.map_preview.forEach(floor => {
+        const floorDiv = document.createElement('div');
+        floorDiv.className = `map-floor ${floor.is_current ? 'current' : ''}`;
+        
+        const label = document.createElement('div');
+        label.className = 'floor-label';
+        label.textContent = floor.floor;
+        floorDiv.appendChild(label);
+
+        // Отрисовка трех дорожек
+        [0, 1, 2].forEach(laneIdx => {
+            const laneKey = laneIdx === 0 ? "Left (0)" : laneIdx === 1 ? "Center (1)" : "Right (2)";
+            const type = floor.lanes[laneKey];
+            const node = document.createElement('div');
+            node.className = 'lane-node';
+            
+            // Если это текущий этаж и текущая дорожка героя - подсвечиваем
+            if (floor.is_current && data.hero_position.lane === laneIdx) {
+                node.classList.add('active-position');
+                node.textContent = '👤'; // Иконка игрока
+            } else {
+                node.textContent = ROOM_ICONS[type] || type;
+            }
+            
+            floorDiv.appendChild(node);
+        });
+
+        container.appendChild(floorDiv);
+    });
+}
+</script>
+
+</body>
+</html>

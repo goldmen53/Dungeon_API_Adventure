@@ -5,9 +5,16 @@ from app.database import init_db, get_session
 from app.models import Hero, HeroUpdate, Monster, MonsterUpdate
 from sqlmodel import Session, select 
 from app.monsters import create_monster_params
+from fastapi.responses import FileResponse
+
 
 
 app = FastAPI(title="Dungeon_API_Adventure")
+
+@app.get("/")
+def read_index():
+    # FastAPI просто прочитает файл index.html и отдаст его в браузер
+    return FileResponse("index.html")
 
 # Запускаем создание таблиц при старте
 @app.on_event("startup")
@@ -250,7 +257,7 @@ def get_all_monsters(session: Session = Depends(get_session)):
 
     
 @app.get("/heroes/{name}/map")
-def get_hero_map(name: str, session: Session = Depends(get_session)):
+def get_hero_map(name: str, session: Session = Depends(get_session)):   
     hero = session.exec(select(Hero).where(Hero.name == name)).first()
     if not hero:
         raise HTTPException(status_code=404, detail="Герой не найден")
@@ -262,7 +269,7 @@ def get_hero_map(name: str, session: Session = Depends(get_session)):
     else:
         map = (hero.current_room //10 )*10
     
-    for f in range( map,map+10 ):
+    for f in range( map+1,map+11 ):
         floor_data = {
             "floor": f"F{f}",
             "lanes": {
@@ -381,7 +388,12 @@ def attack_monster(hero_name: str, session: Session = Depends(get_session)):
         hero.gold += gold_gain
         hero.xp += monster.xp_reward
         hero.active_monster_id = None # Путь свободен
-        
+
+        if hero.xp >= 100:
+            hero.level+=1
+            hero.stat_points+=5
+            hero.xp -= 100
+            log.append(f'Вы получили {hero.level} уровень !')
         session.add(monster)
         session.add(hero)
         session.commit()

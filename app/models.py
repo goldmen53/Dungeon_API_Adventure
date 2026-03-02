@@ -20,11 +20,15 @@ class Hero(SQLModel, table=True):
     max_mp: int = 50
 
     hp: int = 100
-    max_hp: int = 100
+    
+    @property
+    def max_hp(self) -> int:
+        return 20 + (self.vitality * 10)
     
     level: int = 1
     xp: int = 0
     gold: int = 0
+    stat_points: int = Field(default=5) # Даем 5 очков на старте
 
 
     # ГЕОГРАФИЯ
