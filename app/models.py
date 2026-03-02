@@ -16,6 +16,9 @@ class Hero(SQLModel, table=True):
     agility: int = 10
     vitality: int = 10
     
+    mp: int = 50
+    max_mp: int = 50
+
     hp: int = 100
     max_hp: int = 100
     
@@ -23,11 +26,6 @@ class Hero(SQLModel, table=True):
     xp: int = 0
     gold: int = 0
 
-    # Поля для генерации карты
-    # По умолчанию создаем случайный сид при рождении героя
-    world_seed: int = Field(default_factory=lambda: random.randint(1, 999999))
-    current_room: int = 0  # Этаж (F0, F1...)
-    current_lane: int = 1  # Дорожка (0, 1, 2)
 
     # ГЕОГРАФИЯ
 

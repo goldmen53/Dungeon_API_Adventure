@@ -111,11 +111,11 @@ def hero_full_heal(name: str, session: Session = Depends(get_session)):
     if hero.gold < heal_cost:
         raise HTTPException(status_code=400, detail="Нужно больше золота!")
     
-    if hero.current_hp == hero.max_hp:
+    if hero.hp == hero.max_hp:
         return {"message": "Герой уже полностью здоров"}
 
     hero.gold -= heal_cost
-    hero.current_hp = hero.max_hp # Лечим до максимума
+    hero.hp = hero.max_hp # Лечим до максимума
     
     session.add(hero)
     session.commit()
@@ -128,17 +128,17 @@ def spell_heal(name: str, session: Session = Depends(get_session)):
     spell_power= base_power + hero.intelligence
 
     mp_cost = 1
-    if hero.current_mp < mp_cost:
+    if hero.mp < mp_cost:
         return {"message": "Недостаточно МP"}
-    if hero.current_hp == hero.max_hp:
+    if hero.hp == hero.max_hp:
         return {"message": "Герой уже полностью здоров"}
     
-    hero.current_mp -= mp_cost
+    hero.mp -= mp_cost
 
-    if hero.current_hp + spell_power > hero.max_hp:
-        hero.current_hp = hero.max_hp
+    if hero.hp + spell_power > hero.max_hp:
+        hero.hp = hero.max_hp
         
-    else : hero.current_hp+=spell_power
+    else : hero.hp+=spell_power
 
     session.add(hero)
     session.commit()
