@@ -11,6 +11,8 @@ from fastapi.responses import FileResponse
 
 app = FastAPI(title="Dungeon_API_Adventure")
 
+
+
 @app.get("/")
 def read_index():
     # FastAPI просто прочитает файл index.html и отдаст его в браузер
@@ -425,4 +427,53 @@ def attack_monster(hero_name: str, session: Session = Depends(get_session)):
         "log": log,
         "hero_hp": f"{hero.hp}/{hero.max_hp}",
         "monster_hp": f"{monster.current_hp}/{monster.max_hp}"
+    }
+
+@app.post("/heroes/{name}/upgrade")
+def upgrade_stat(name: str, stat: str,amount: int, session: Session = Depends(get_session)):
+    hero = session.exec(select(Hero).where(Hero.name == name)).first()
+    if not hero:
+        raise HTTPException(status_code=404, detail="Герой не найден")
+    
+    if hero.stat_points <= 0:
+        raise HTTPException(status_code=400, detail="У вас нет свободных очков характеристик")
+    
+    if amount > hero.stat_points:
+        raise HTTPException(status_code=400, detail="У вас недостаточно очков характеристик")
+    
+    
+    if stat == "str":
+        hero.strength += amount
+    elif stat == "agi":
+        hero.agility += amount
+    
+    elif stat == "vit":
+        hero.vitality += amount
+        # Сразу обновляем макс ХП по твоей формуле 
+        hero.hp += (hero.vitality*10)
+    
+    elif stat == "int":
+        hero.intelligence += amount
+    elif stat == "dex":
+        hero.dexterity += amount
+
+    else:
+        raise HTTPException(status_code=400, detail="Неверная характеристика")
+    
+    hero.stat_points -= amount
+
+    session.add(hero)
+    session.commit()
+    session.refresh(hero)
+    
+    return {
+        "message": f"{stat} успешно увеличена!",
+        "current_stats": {
+            "str": hero.strength,
+            "agi": hero.agility,
+            "vit": hero.vitality,
+            "int": hero.intelligence,
+            "dex": hero.dexterity,
+            "points_left": hero.stat_points
+        }
     }
