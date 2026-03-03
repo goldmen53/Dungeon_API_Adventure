@@ -395,6 +395,8 @@ def attack_monster(hero_name: str, session: Session = Depends(get_session)):
             hero.level+=1
             hero.stat_points+=5
             hero.xp -= 100
+            hero.hp = hero.max_hp
+            hero.mp = hero.max_mp
             log.append(f'Вы получили {hero.level} уровень !')
         session.add(monster)
         session.add(hero)

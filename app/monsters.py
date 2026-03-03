@@ -30,7 +30,7 @@ def create_monster_params(floor: int, is_boss: bool = False):
         # Для босса можно сделать отдельную логику, пока возьмем усиленного гоблина
         template = MONSTER_TEMPLATES["goblin"]
         name_prefix = "БОСС: "
-        scale = 3.0 # Босс в 3 раза сильнее обычного моба на этаже
+        scale = 2.0 # Босс в 3 раза сильнее обычного моба на этаже
     else:
         template = random.choice(list(MONSTER_TEMPLATES.values()))
         name_prefix = ""
