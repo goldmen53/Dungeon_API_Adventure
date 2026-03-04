@@ -2,6 +2,30 @@ from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List
 import random
 
+
+
+class HeroArtifactLink(SQLModel, table=True):
+    hero_id: Optional[int] = Field(default=None, foreign_key="hero.id", primary_key=True)
+    artifact_id: Optional[int] = Field(default=None, foreign_key="artifact.id", primary_key=True)
+
+class Artifact(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    description: str
+    effect_key: Optional[str] = Field(default=None, nullable=True)
+
+    bonus_strength: int = Field(default=0)
+    bonus_vitality: int = Field(default=0)
+    bonus_intelligence: int = Field(default=0)
+    bonus_agility: int = Field(default=0)
+    bonus_dexterity: int = Field(default=0)
+
+
+    heroes: List["Hero"] = Relationship(back_populates="artifacts", link_model=HeroArtifactLink)
+
+
+
+
 # --- БАЗОВЫЙ КЛАСС (Общие поля для всех) ---
 class Hero(SQLModel, table=True):
     # Первичный ключ (обязательно для table=True)
@@ -15,20 +39,51 @@ class Hero(SQLModel, table=True):
     intelligence: int = 10
     agility: int = 10
     vitality: int = 10
-    
     mp: int = 50
     max_mp: int = 50
-
     hp: int = 100
     
     @property
+    def total_vitality(self) -> int:
+        bonus = sum(art.bonus_vitality for art in self.artifacts)
+        return self.vitality + bonus
+
+    @property
     def max_hp(self) -> int:
-        return 20 + (self.vitality * 10)
+        return 20 + (self.total_vitality * 10)
     
+    @property
+    def total_dexterity(self) -> int:
+        # Суммируем базу + бонусы от всех артефактов в рюкзаке
+        bonus = sum(art.bonus_dexterity for art in self.artifacts)
+        return self.dexterity + bonus
+    
+    @property
+    def total_intelligence(self) -> int:
+        # Суммируем базу + бонусы от всех артефактов в рюкзаке
+        bonus = sum(art.bonus_intelligence for art in self.artifacts)
+        return self.intelligence + bonus
+    
+    @property
+    def total_agility(self) -> int:
+        # Суммируем базу + бонусы от всех артефактов в рюкзаке
+        bonus = sum(art.bonus_agility for art in self.artifacts)
+        return self.agility + bonus
+    
+    @property
+    def total_strength(self) -> int:
+        # Суммируем базу + бонусы от всех артефактов в рюкзаке
+        bonus = sum(art.bonus_strength for art in self.artifacts)
+        return self.strength + bonus
+
+
+
     level: int = 1
     xp: int = 0
     gold: int = 0
     stat_points: int = Field(default=5) # Даем 5 очков на старте
+
+    artifacts: List[Artifact] = Relationship(back_populates="heroes", link_model=HeroArtifactLink)
 
 
     # ГЕОГРАФИЯ
@@ -67,6 +122,7 @@ class HeroUpdate(SQLModel):
     max_hp: Optional[int] = None
     max_mp: Optional[int] = None
     current_mp: Optional[int] = None
+
 
 class MonsterUpdate(SQLModel):
     level: Optional[int] = None

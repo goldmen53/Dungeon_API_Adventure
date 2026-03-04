@@ -2,16 +2,24 @@
 import random
 from fastapi import FastAPI, Depends, HTTPException
 from app.database import init_db, get_session
-from app.models import Hero, HeroUpdate, Monster, MonsterUpdate
-from sqlmodel import Session, select 
+from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact
+from sqlmodel import Session, select
 from app.monsters import create_monster_params
 from fastapi.responses import FileResponse
-
+from app.effects import BATTLE_EFFECTS
+from app.artifacts import PRESET_ARTIFACTS
 
 
 app = FastAPI(title="Dungeon_API_Adventure")
 
-
+def init_artifacts(session: Session):
+    for data in PRESET_ARTIFACTS:
+        # Проверяем, существует ли уже такой артефакт
+        exists = session.exec(select(Artifact).where(Artifact.name == data["name"])).first()
+        if not exists:
+            new_art = Artifact(**data)
+            session.add(new_art)
+    session.commit()
 
 @app.get("/")
 def read_index():
@@ -22,6 +30,14 @@ def read_index():
 @app.on_event("startup")
 def on_startup():
     init_db()
+    session_generator = get_session()
+    session = next(session_generator)
+    
+    try:
+        init_artifacts(session)
+    finally:
+        session.close() # Всегда закрываем сессию вручную
+
 
 @app.get("/")
 def welcome():
@@ -378,9 +394,17 @@ def attack_monster(hero_name: str, session: Session = Depends(get_session)):
 
     # --- ХОД ГЕРОЯ ---
     # Урон героя (пока привяжем к силе strength)
-    hero_damage = random.randint(hero.strength, hero.strength + 5)
+    hero_damage = random.randint(hero.total_strength, hero.total_strength + 5)
     monster.current_hp -= hero_damage
     log = [f"Вы ударили {monster.name} на {hero_damage} урона."]
+
+    for art in hero.artifacts:
+        handler = BATTLE_EFFECTS.get(art.effect_key)
+        if handler:
+            # Вызываем функцию эффекта
+            effect_msg = handler(hero, monster, hero_damage) 
+            if effect_msg:
+                log.append(effect_msg)
 
     # Проверка смерти монстра
     if monster.current_hp <= 0:
@@ -479,3 +503,37 @@ def upgrade_stat(name: str, stat: str,amount: int, session: Session = Depends(ge
             "points_left": hero.stat_points
         }
     }
+
+@app.post("/admin/give_artifact")
+def give_artifact(hero_name: str, artifact_id: int, session: Session = Depends(get_session)):
+    # 1. Ищем героя
+    hero = session.exec(select(Hero).where(Hero.name == hero_name)).first()
+    if not hero:
+        raise HTTPException(status_code=404, detail="Герой не найден")
+    
+    # 2. Ищем артефакт
+    artifact = session.get(Artifact, artifact_id)
+    if not artifact:
+        raise HTTPException(status_code=404, detail="Артефакт не найден")
+
+    # 3. Проверка: нет ли у героя уже такого предмета (для нашей системы "артефактов-реликвий")
+    if artifact in hero.artifacts:
+        raise HTTPException(status_code=400, detail="У героя уже есть этот артефакт")
+
+    # 4. ДОБАВЛЯЕМ СВЯЗЬ
+    # Благодаря Relationship и LinkTable, это всё, что нужно сделать:
+    hero.artifacts.append(artifact)
+    
+    session.add(hero)
+    session.commit()
+    
+    return {
+        "message": f"Артефакт '{artifact.name}' успешно выдан герою {hero.name}",
+        "current_artifacts": [a.name for a in hero.artifacts]
+    }
+
+
+@app.get("/artifacts/all")
+def list_all_artifacts(session: Session = Depends(get_session)):
+    artifacts = session.exec(select(Artifact)).all()
+    return artifacts
