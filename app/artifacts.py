@@ -3,20 +3,29 @@ PRESET_ARTIFACTS = [
         "name": "Вампирский клык",
         "description": "Восстанавливает 15% здоровья от нанесенного урона",
         "effect_key": "vampirism_15",
-        "bonus_strength": 2
+        "bonus_strength": 2,
+        "level": 1,
+        "cost": 20,
+        "rarnes": "base"
     },
     {
         "name": "Топор Берсерка",
         "description": "Удваивает урон, если у вас меньше 30% здоровья",
         "effect_key": "berserk_low_hp",
         "bonus_strength": 5,
-        "bonus_vitality": -2
+        "bonus_vitality": -2,
+        "level": 1,
+        "cost": 20,
+        "rarnes": "base"
     },
     {
         "name": "Кольцо Жизни",
         "description": "Значительно увеличивает запас здоровья",
         "effect_key": None,
-        "bonus_vitality": 10
+        "bonus_vitality": 10,
+        "level": 1,
+        "cost": 20,
+        "rarnes": "base"
     },
     {
         "name": "Старый амулет",
@@ -25,6 +34,9 @@ PRESET_ARTIFACTS = [
         "bonus_strength": 1,
         "bonus_vitality": 1,
         "bonus_agility": 1,
-        "bonus_intelligence": 1
+        "bonus_intelligence": 1,
+        "level": 1,
+        "cost": 20,
+        "rarnes": "base"
     }
 ]

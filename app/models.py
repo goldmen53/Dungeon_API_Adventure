@@ -139,6 +139,10 @@ class ArtifactRead(BaseModel):
     name: str
     description: str
     bonus_strength: int
+    level: int
+    cost: int
+    rarnes:str # base,rare,epic,boss,store
+    
 
 class HeroRead(BaseModel):
     id: int
