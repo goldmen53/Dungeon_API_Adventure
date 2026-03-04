@@ -2,7 +2,7 @@
 import random
 from fastapi import FastAPI, Depends, HTTPException
 from app.database import init_db, get_session
-from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact
+from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact,HeroRead
 from sqlmodel import Session, select
 from app.monsters import create_monster_params
 from fastapi.responses import FileResponse
@@ -65,25 +65,23 @@ def create_hero(name: str, session: Session = Depends(get_session)):
         "start_position": f"Floor: {new_hero.current_room}, Lane: {new_hero.current_lane}"
     }
 
-@app.get("/heroes/{name}")
+@app.get("/heroes/{name}", response_model=HeroRead) # Магия здесь
 def get_hero_status(name: str, session: Session = Depends(get_session)):
-    # 1. Формируем запрос: "Выбрать всё из таблицы Hero, где имя совпадает"
-    statement = select(Hero).where(Hero.name == name)
-    
-    # 2. Выполняем запрос и берем первый результат
-    hero = session.exec(statement).first()
-    
-    # 3. Если герой не найден — возвращаем 404 ошибку
+    hero = session.exec(select(Hero).where(Hero.name == name)).first()
     if not hero:
-        raise HTTPException(status_code=404, detail="Герой не найден в этом подземелье")
+        raise HTTPException(status_code=404, detail="Герой не найден")
     
-    return hero
+    return hero # FastAPI сам сопоставит поля героя со схемой HeroRead
 
-@app.get("/heroes/")
+from typing import List
+
+@app.get("/heroes/", response_model=List[HeroRead]) # Указываем, что возвращаем СПИСОК
 def get_all_heroes(session: Session = Depends(get_session)):
-    # Важно: select(Hero) работает только если у Hero стоит table=True
-    statement = select(Hero)
-    heroes = session.exec(statement).all()
+    heroes = session.exec(select(Hero)).all()
+    
+    if not heroes:
+        raise HTTPException(status_code=404, detail="Герои еще не созданы")
+    
     return heroes
 
 @app.delete('/heroes/{name}')

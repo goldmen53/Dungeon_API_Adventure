@@ -1,7 +1,7 @@
 from sqlmodel import SQLModel, Field, Relationship
 from typing import Optional, List
 import random
-
+from pydantic import BaseModel
 
 
 class HeroArtifactLink(SQLModel, table=True):
@@ -134,3 +134,22 @@ class MonsterUpdate(SQLModel):
     max_gold: Optional[int] = None
     xp_reward: Optional[int] = None
 
+
+class ArtifactRead(BaseModel):
+    name: str
+    description: str
+    bonus_strength: int
+
+class HeroRead(BaseModel):
+    id: int
+    name: str
+    hp: int
+    max_hp: int
+    total_strength: int
+    total_dexterity: int
+    total_intelligence: int
+    total_agility: int
+    total_vitality: int
+    level: int
+    gold: int
+    artifacts: List[ArtifactRead] = []
