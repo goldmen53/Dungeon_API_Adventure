@@ -7,7 +7,7 @@ DATABASE_URL = "postgresql://player:quest@localhost:5432/dungeon_crawler"
 
 # echo=True заставит SQLAlchemy выводить в консоль все SQL-запросы. 
 # Это ОЧЕНЬ круто для обучения, ты будешь видеть, как Python превращается в SQL.
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=False)
 
 def init_db():
     """Создает таблицы в базе данных на основе моделей SQLModel."""

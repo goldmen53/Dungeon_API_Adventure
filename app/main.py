@@ -578,24 +578,34 @@ def buy_artifact(name: str, artifact_id: int, session: Session = Depends(get_ses
     if not hero or not artifact:
         raise HTTPException(status_code=404, detail="Герой или артефакт не найден")
 
-    # 1. Проверяем деньги
+    current_room_type = get_room_type(hero.current_room, hero.current_lane, hero.world_seed)
+    
+    # Проверем локцию
+    if current_room_type != "S":
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Артефакты можно купить только в магазине"
+        )
+
+    #  Проверяем деньги
     if hero.gold < artifact.cost:
         raise HTTPException(status_code=400, detail="Недостаточно золота!")
 
-    # 2. Проверяем, нет ли уже такого артефакта
+    # Проверяем, нет ли уже такого артефакта
     if artifact in hero.artifacts:
         raise HTTPException(status_code=400, detail="У вас уже есть этот артефакт")
 
-    # 4. Проверяем, есть ли этот товар именно в текущем магазине
+    # Проверяем, есть ли этот товар именно в текущем магазине
     current_items = hero.current_shop_items.split(",") if hero.current_shop_items else []
     if str(artifact_id) not in current_items:
         raise HTTPException(status_code=400, detail="Этого товара больше нет в продаже")
+    
 
-    # 5. Проводим сделку
+    # Проводим сделку
     hero.gold -= artifact.cost
     hero.artifacts.append(artifact)
     
-    # 6. Удаляем купленный ID из списка магазина
+    # Удаляем купленный ID из списка магазина
     current_items.remove(str(artifact_id))
     hero.current_shop_items = ",".join(current_items)
 
