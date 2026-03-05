@@ -19,6 +19,9 @@ class Artifact(SQLModel, table=True):
     bonus_intelligence: int = Field(default=0)
     bonus_agility: int = Field(default=0)
     bonus_dexterity: int = Field(default=0)
+    level: int = Field(default=1)
+    cost: int = Field(default=1)
+    rarity: str = Field(default="base") # base,rare,epic,boss,store
 
 
     heroes: List["Hero"] = Relationship(back_populates="artifacts", link_model=HeroArtifactLink)
@@ -84,6 +87,8 @@ class Hero(SQLModel, table=True):
     stat_points: int = Field(default=5) # Даем 5 очков на старте
 
     artifacts: List[Artifact] = Relationship(back_populates="heroes", link_model=HeroArtifactLink)
+    # Храним ID артефактов в магазине как строку, разделенную запятыми
+    current_shop_items: Optional[str] = Field(default=None)
 
 
     # ГЕОГРАФИЯ
@@ -140,8 +145,8 @@ class ArtifactRead(BaseModel):
     description: str
     bonus_strength: int
     level: int
-    cost: int
-    rarnes:str # base,rare,epic,boss,store
+    cost: int 
+    rarity: str # base,rare,epic,boss,store
     
 
 class HeroRead(BaseModel):

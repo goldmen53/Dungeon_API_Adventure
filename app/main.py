@@ -362,6 +362,8 @@ def move_hero(name: str, target_lane: int, session: Session = Depends(get_sessio
         hero.active_monster_id = new_monster.id
     else:
         hero.active_monster_id = None
+    #при каждом шаге сбрасывем магазин и генерируем заново
+    hero.current_shop_items = None
 
     session.add(hero)
     session.commit()
@@ -535,3 +537,70 @@ def give_artifact(hero_name: str, artifact_id: int, session: Session = Depends(g
 def list_all_artifacts(session: Session = Depends(get_session)):
     artifacts = session.exec(select(Artifact)).all()
     return artifacts
+
+@app.get("/heroes/{name}/shop")
+def get_shop_catalog(name: str, session: Session = Depends(get_session)):
+    hero = session.exec(select(Hero).where(Hero.name == name)).first()
+    if not hero:
+        raise HTTPException(status_code=404, detail="Герой не найден")
+
+    # 1. Если список товаров пуст, генерируем его
+    if not hero.current_shop_items:
+        # Берем только те, что можно купить (base или store)
+        statement = select(Artifact).where(Artifact.rarity.in_(["base", "store"]))
+        all_available = session.exec(statement).all()
+        
+        count = min(3, len(all_available))
+        selection = random.sample(all_available, k=count)
+        
+        # Сохраняем ID через запятую (напр. "1,4,7")
+        hero.current_shop_items = ",".join([str(a.id) for a in selection])
+        session.add(hero)
+        session.commit()
+    
+    # 2. Получаем объекты артефактов по сохраненным ID
+    item_ids = [int(i) for i in hero.current_shop_items.split(",") if i]
+    if not item_ids:
+        return {"hero_gold": hero.gold, "items_for_sale": [], "message": "Магазин пуст"}
+
+    shop_items = session.exec(select(Artifact).where(Artifact.id.in_(item_ids))).all()
+
+    return {
+        "hero_gold": hero.gold,
+        "items_for_sale": shop_items
+    }
+
+@app.post("/heroes/{name}/buy")
+def buy_artifact(name: str, artifact_id: int, session: Session = Depends(get_session)):
+    hero = session.exec(select(Hero).where(Hero.name == name)).first()
+    artifact = session.get(Artifact, artifact_id)
+
+    if not hero or not artifact:
+        raise HTTPException(status_code=404, detail="Герой или артефакт не найден")
+
+    # 1. Проверяем деньги
+    if hero.gold < artifact.cost:
+        raise HTTPException(status_code=400, detail="Недостаточно золота!")
+
+    # 2. Проверяем, нет ли уже такого артефакта
+    if artifact in hero.artifacts:
+        raise HTTPException(status_code=400, detail="У вас уже есть этот артефакт")
+
+    # 4. Проверяем, есть ли этот товар именно в текущем магазине
+    current_items = hero.current_shop_items.split(",") if hero.current_shop_items else []
+    if str(artifact_id) not in current_items:
+        raise HTTPException(status_code=400, detail="Этого товара больше нет в продаже")
+
+    # 5. Проводим сделку
+    hero.gold -= artifact.cost
+    hero.artifacts.append(artifact)
+    
+    # 6. Удаляем купленный ID из списка магазина
+    current_items.remove(str(artifact_id))
+    hero.current_shop_items = ",".join(current_items)
+
+    session.add(hero)
+    session.commit()
+    
+    return {"message": f"Куплено: {artifact.name}", "new_gold": hero.gold}
+

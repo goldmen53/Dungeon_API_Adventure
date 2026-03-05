@@ -6,7 +6,7 @@ PRESET_ARTIFACTS = [
         "bonus_strength": 2,
         "level": 1,
         "cost": 20,
-        "rarnes": "base"
+        "rarity": "base"
     },
     {
         "name": "Топор Берсерка",
@@ -16,7 +16,7 @@ PRESET_ARTIFACTS = [
         "bonus_vitality": -2,
         "level": 1,
         "cost": 20,
-        "rarnes": "base"
+        "rarity": "base"
     },
     {
         "name": "Кольцо Жизни",
@@ -25,7 +25,7 @@ PRESET_ARTIFACTS = [
         "bonus_vitality": 10,
         "level": 1,
         "cost": 20,
-        "rarnes": "base"
+        "rarity": "base"
     },
     {
         "name": "Старый амулет",
@@ -37,6 +37,6 @@ PRESET_ARTIFACTS = [
         "bonus_intelligence": 1,
         "level": 1,
         "cost": 20,
-        "rarnes": "base"
+        "rarity": "base"
     }
 ]
