@@ -29,9 +29,9 @@ class Artifact(SQLModel, table=True):
 
 
 
-# --- БАЗОВЫЙ КЛАСС (Общие поля для всех) ---
+# --- БАЗОВЫЙ КЛАСС  ---
 class Hero(SQLModel, table=True):
-    # Первичный ключ (обязательно для table=True)
+    # Первичный ключ 
     id: Optional[int] = Field(default=None, primary_key=True)
     
     name: str = Field(index=True, unique=True)
@@ -63,19 +63,16 @@ class Hero(SQLModel, table=True):
     
     @property
     def total_intelligence(self) -> int:
-        # Суммируем базу + бонусы от всех артефактов в рюкзаке
         bonus = sum(art.bonus_intelligence for art in self.artifacts)
         return self.intelligence + bonus
     
     @property
     def total_agility(self) -> int:
-        # Суммируем базу + бонусы от всех артефактов в рюкзаке
         bonus = sum(art.bonus_agility for art in self.artifacts)
         return self.agility + bonus
     
     @property
     def total_strength(self) -> int:
-        # Суммируем базу + бонусы от всех артефактов в рюкзаке
         bonus = sum(art.bonus_strength for art in self.artifacts)
         return self.strength + bonus
 
@@ -87,12 +84,12 @@ class Hero(SQLModel, table=True):
     stat_points: int = Field(default=5) # Даем 5 очков на старте
 
     artifacts: List[Artifact] = Relationship(back_populates="heroes", link_model=HeroArtifactLink)
+    
     # Храним ID артефактов в магазине как строку, разделенную запятыми
     current_shop_items: Optional[str] = Field(default=None)
 
 
     # ГЕОГРАФИЯ
-
     world_seed: int = Field(default_factory=lambda: random.randint(1, 999999))
     current_room: int = 0  # Этаж (F1, F2...)
     current_lane: int = 1  # Дорожка (0 - лево, 1 - центр, 2 - право)
@@ -105,7 +102,8 @@ class Monster(SQLModel, table=True):
     # Характеристики
     max_hp: int = Field(default=50)
     current_hp: int = Field(default=50)
-    # Диапазоны (вместо фиксированных чисел)
+
+    # Диапазоны для монстров
     min_attack: int = Field(default=5)
     max_attack: int = Field(default=10)
     min_gold: int = Field(default=1)
@@ -114,7 +112,6 @@ class Monster(SQLModel, table=True):
 
 
 class HeroUpdate(SQLModel):
-    # Все поля Optional. Если мы их не прислали в JSON, они будут None
     strength: Optional[int] = None
     vitality: Optional[int] = None
     dexterity: Optional[int] = None

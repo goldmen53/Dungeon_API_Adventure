@@ -282,7 +282,7 @@ def get_hero_map(name: str, session: Session = Depends(get_session)):
         map = 0
     else:
         map = (hero.current_room //10 )*10
-    
+    #уникальный спагети код для отрисовки 0 этажа возможно потом убрать 
     if hero.current_room < 11:
         for f in range( map,map+11 ):
             floor_data = {
@@ -321,16 +321,16 @@ def get_room_type(floor: int, lane: int, seed: int) -> str:
     point_seed = f"{seed}-{floor}-{lane}"
     random.seed(point_seed)
     
-    # Правило 1: Босс каждый 10-й этаж и этаж перед посом всегда отдых
+    #  0 этаж всегда отдых
     if floor == 0 :
         return "R"
-
+    #  Босс каждый 10-й этаж и этаж перед посом всегда отдых
     if floor > 0 and floor % 10 == 0:
         return "BOSS"
     if floor > 0 and floor % 9 == 0:
         return "R"
     
-    # Правило 2: Распределение типов комнат
+    # Распределение типов комнат
     # 'B' - Battle, 'S' - Shop, 'R' - Rest, 'E' - Event/Question
     roll = random.random()
     if roll < 0.6: return "B"   # 60% шанс битвы
@@ -346,7 +346,7 @@ def move_hero(name: str, target_lane: int, session: Session = Depends(get_sessio
     if not hero:
         raise HTTPException(status_code=404, detail="Герой не найден")
 
-    # 1. Сначала ПРОВЕРКА БОЯ (нельзя уйти из текущей комнаты, если там враг)
+    # Сначала ПРОВЕРКА БОЯ (нельзя уйти из текущей комнаты, если там враг)
     if hero.active_monster_id:
         monster = session.get(Monster, hero.active_monster_id)
         if monster and monster.current_hp > 0:
@@ -355,19 +355,19 @@ def move_hero(name: str, target_lane: int, session: Session = Depends(get_sessio
                 detail=f"Вы не можете уйти, пока жив {monster.name}!"
             )
 
-    # 2. ПРОВЕРКА ДОРОЖКИ (можно только на соседние)
+    # ПРОВЕРКА ДОРОЖКИ (можно только на соседние)
     allowed_lanes = [hero.current_lane, hero.current_lane - 1, hero.current_lane + 1]
     if target_lane not in allowed_lanes or target_lane not in [0, 1, 2]:
          raise HTTPException(status_code=400, detail="Недопустимый переход")
 
-    # 3. ШАГ ВПЕРЕД (Меняем координаты ПЕРЕД генерацией типа комнаты)
+    #  ШАГ ВПЕРЕД (Меняем координаты ПЕРЕД генерацией типа комнаты)
     hero.current_room += 1
     hero.current_lane = target_lane
     
-    # 4. ОПРЕДЕЛЯЕМ ТИП НОВОЙ КОМНАТЫ
+    # ОПРЕДЕЛЯЕМ ТИП НОВОЙ КОМНАТЫ
     room_type = get_room_type(hero.current_room, hero.current_lane, hero.world_seed)
 
-    # 5. ЛОГИКА СПАВНА
+    # ЛОГИКА СПАВНА
     m_params = None
     if room_type == "B" or room_type == "BOSS":
         m_params = create_monster_params(hero.current_room, is_boss=(room_type == "BOSS"))
@@ -377,7 +377,8 @@ def move_hero(name: str, target_lane: int, session: Session = Depends(get_sessio
         hero.active_monster_id = new_monster.id
     else:
         hero.active_monster_id = None
-    #при каждом шаге сбрасывем магазин и генерируем заново
+
+    #логика обовления магазина. При каждом шаге сбрасывем магазин и генерируем заново
     hero.current_shop_items = None
 
     session.add(hero)
@@ -393,12 +394,12 @@ def move_hero(name: str, target_lane: int, session: Session = Depends(get_sessio
 
 @app.post("/battle/attack")
 def attack_monster(hero_name: str, session: Session = Depends(get_session)):
-    # 1. Ищем героя
+    # Ищем героя
     hero = session.exec(select(Hero).where(Hero.name == hero_name)).first()
     if not hero or not hero.active_monster_id:
         raise HTTPException(status_code=400, detail="У вас нет активного противника")
 
-    # 2. Ищем монстра
+    # Ищем монстра
     monster = session.get(Monster, hero.active_monster_id)
     if not monster or monster.current_hp <= 0:
         # Если монстр уже мертв, но ID остался — зачищаем ID
@@ -424,6 +425,8 @@ def attack_monster(hero_name: str, session: Session = Depends(get_session)):
     # Проверка смерти монстра
     if monster.current_hp <= 0:
         monster.current_hp = 0
+        
+        
         # Выдаем награду
         gold_gain = random.randint(monster.min_gold, monster.max_gold)
         hero.gold += gold_gain
@@ -454,6 +457,10 @@ def attack_monster(hero_name: str, session: Session = Depends(get_session)):
     if hero.hp <= 0:
         hero.hp = 0
         # Здесь потом будет логика смерти (телепортация в город или удаление)
+        # 
+        # ------НЕ ЗАБЫВАЕМ ДОБАВИТЬ ЛОГИКУ СМЕРТИ------
+        #
+        #
         log.append("Вы погибли!")
         status = "defeat"
     else:
@@ -490,7 +497,7 @@ def upgrade_stat(name: str, stat: str,amount: int, session: Session = Depends(ge
     
     elif stat == "vit":
         hero.vitality += amount
-        # Сразу обновляем макс ХП по твоей формуле 
+        # Сразу обновляем макс ХП по  формуле 
         hero.hp += (hero.vitality*10)
     
     elif stat == "int":
@@ -521,22 +528,22 @@ def upgrade_stat(name: str, stat: str,amount: int, session: Session = Depends(ge
 
 @app.post("/admin/give_artifact")
 def give_artifact(hero_name: str, artifact_id: int, session: Session = Depends(get_session)):
-    # 1. Ищем героя
+    # Ищем героя
     hero = session.exec(select(Hero).where(Hero.name == hero_name)).first()
     if not hero:
         raise HTTPException(status_code=404, detail="Герой не найден")
     
-    # 2. Ищем артефакт
+    # Ищем артефакт
     artifact = session.get(Artifact, artifact_id)
     if not artifact:
         raise HTTPException(status_code=404, detail="Артефакт не найден")
 
-    # 3. Проверка: нет ли у героя уже такого предмета (для нашей системы "артефактов-реликвий")
+    # Проверка: нет ли у героя уже такого предмета
     if artifact in hero.artifacts:
         raise HTTPException(status_code=400, detail="У героя уже есть этот артефакт")
 
-    # 4. ДОБАВЛЯЕМ СВЯЗЬ
-    # Благодаря Relationship и LinkTable, это всё, что нужно сделать:
+    # ДОБАВЛЯЕМ СВЯЗЬ
+    # Благодаря Relationship и LinkTable
     hero.artifacts.append(artifact)
     
     session.add(hero)
@@ -559,7 +566,7 @@ def get_shop_catalog(name: str, session: Session = Depends(get_session)):
     if not hero:
         raise HTTPException(status_code=404, detail="Герой не найден")
 
-    # 1. Если список товаров пуст, генерируем его
+    # Если список товаров пуст, генерируем его
     if not hero.current_shop_items:
         # Берем только те, что можно купить (base или store)
         statement = select(Artifact).where(Artifact.rarity.in_(["base", "store"]))
@@ -568,12 +575,12 @@ def get_shop_catalog(name: str, session: Session = Depends(get_session)):
         count = min(3, len(all_available))
         selection = random.sample(all_available, k=count)
         
-        # Сохраняем ID через запятую (напр. "1,4,7")
+        # Сохраняем ID через запятую ("1,4,7")
         hero.current_shop_items = ",".join([str(a.id) for a in selection])
         session.add(hero)
         session.commit()
     
-    # 2. Получаем объекты артефактов по сохраненным ID
+    #Получаем объекты артефактов по сохраненным ID
     item_ids = [int(i) for i in hero.current_shop_items.split(",") if i]
     if not item_ids:
         return {"hero_gold": hero.gold, "items_for_sale": [], "message": "Магазин пуст"}

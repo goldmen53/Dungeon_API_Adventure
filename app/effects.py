@@ -10,13 +10,12 @@ def effect_berserk(hero, monster, damage):
         return "БЕРСЕРК! Урон удвоен!"
     return None
 
+
+
+
+
+
 # Реестр: связываем строку из БД с функцией
-
-
-
-
-
-
 BATTLE_EFFECTS = {
     "vampirism_15": effect_vampirism,
     "berserk_low_hp": effect_berserk
