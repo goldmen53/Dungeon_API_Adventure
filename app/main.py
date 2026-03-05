@@ -43,7 +43,7 @@ def on_startup():
 def welcome():
     return {"message": "Подземелье ждет!"}
 
-# Эндпоинт для создания героя
+
 @app.post("/heroes/create")
 def create_hero(name: str, session: Session = Depends(get_session)):
     # Проверяем, нет ли уже такого имени
@@ -65,17 +65,16 @@ def create_hero(name: str, session: Session = Depends(get_session)):
         "start_position": f"Floor: {new_hero.current_room}, Lane: {new_hero.current_lane}"
     }
 
-@app.get("/heroes/{name}", response_model=HeroRead) # Магия здесь
+@app.get("/heroes/{name}", response_model=HeroRead) 
 def get_hero_status(name: str, session: Session = Depends(get_session)):
     hero = session.exec(select(Hero).where(Hero.name == name)).first()
     if not hero:
         raise HTTPException(status_code=404, detail="Герой не найден")
     
-    return hero # FastAPI сам сопоставит поля героя со схемой HeroRead
-
+    return hero 
 from typing import List
 
-@app.get("/heroes/", response_model=List[HeroRead]) # Указываем, что возвращаем СПИСОК
+@app.get("/heroes/", response_model=List[HeroRead])
 def get_all_heroes(session: Session = Depends(get_session)):
     heroes = session.exec(select(Hero)).all()
     
@@ -100,16 +99,16 @@ def delete_hero(name:str, session: Session = Depends(get_session)):
 
 @app.patch("/heroes/{name}")
 def update_hero(name: str, hero_data: HeroUpdate, session: Session = Depends(get_session)):
-    # 1. Ищем героя
+    # Ищем героя
     db_hero = session.exec(select(Hero).where(Hero.name == name)).first()
     if not db_hero:
         raise HTTPException(status_code=404, detail="Герой не найден")
 
-    # 2. Превращаем присланные данные в словарь, исключая те, что не прислали (None)
+    # Превращаем присланные данные в словарь, исключая те, что не прислали (None)
     update_dict = hero_data.dict(exclude_unset=True)
 
     for key, value in update_dict.items():
-        # 3. Базовая логика ограничений (пример для HP)
+        # Базовая логика ограничений (пример для HP)
         if key == "current_hp":
             # Не даем упасть ниже 0 и подняться выше макс_хп
             value = max(0, min(value, db_hero.max_hp))
@@ -121,7 +120,7 @@ def update_hero(name: str, hero_data: HeroUpdate, session: Session = Depends(get
         # Применяем изменение к объекту
         setattr(db_hero, key, value)
 
-    # 4. Сохраняем
+    # Сохраняем
     session.add(db_hero)
     session.commit()
     session.refresh(db_hero)
@@ -129,23 +128,23 @@ def update_hero(name: str, hero_data: HeroUpdate, session: Session = Depends(get
 
 @app.post("/heroes/{name}/rest")  # Переименуем для атмосферности
 def hero_rest(name: str, session: Session = Depends(get_session)):
-    # 1. Загружаем героя из базы
+    # Загружаем героя из базы
     hero = session.exec(select(Hero).where(Hero.name == name)).first()
     if not hero:
         raise HTTPException(status_code=404, detail="Герой не найден")
     
-    # 2. ОПРЕДЕЛЯЕМ ТИП ТЕКУЩЕЙ ЛОКАЦИИ
+    # ОПРЕДЕЛЯЕМ ТИП ТЕКУЩЕЙ ЛОКАЦИИ
     # Мы используем те же координаты и сид, что и при движении
     current_room_type = get_room_type(hero.current_room, hero.current_lane, hero.world_seed)
     
-    # 3. ПРОВЕРКА: Находимся ли мы в зоне отдыха?
+    #  Находимся ли мы в зоне отдыха?
     if current_room_type != "R":
         raise HTTPException(
             status_code=400, 
             detail=f"Здесь опасно! Вы не можете отдыхать в комнате типа '{current_room_type}'"
         )
     
-    # 4. ПРОВЕРКА ЗОЛОТА И ЗДОРОВЬЯ
+    # ПРОВЕРКА ЗОЛОТА И ЗДОРОВЬЯ
     heal_cost = 10
     if hero.gold < heal_cost:
         raise HTTPException(status_code=400, detail="Нужно больше золота для припасов!")
@@ -153,11 +152,11 @@ def hero_rest(name: str, session: Session = Depends(get_session)):
     if hero.hp == hero.max_hp:
         return {"message": "Вы полны сил и не нуждаетесь в отдыхе."}
 
-    # 5. ПРИМЕНЕНИЕ ЭФФЕКТОВ
+    # ПРИМЕНЕНИЕ ЭФФЕКТОВ
     hero.gold -= heal_cost
     hero.hp = hero.max_hp 
     
-    # 6. СОХРАНЕНИЕ
+    # СОХРАНЕНИЕ
     session.add(hero)
     session.commit()
     
@@ -193,7 +192,7 @@ def spell_heal(name: str, session: Session = Depends(get_session)):
     return {
         "message": (
             f" {hero.name} шепчет заклинание... Восстановлено {spell_power} HP. "
-            f"Текущее состояние: {hero.current_hp}/{hero.max_hp} HP, {hero.current_mp}/{hero.max_mp} MP."
+            f"Текущее состояние: {hero.hp}/{hero.max_hp} HP, {hero.mp}/{hero.max_mp} MP."
         )
     }
 
@@ -208,13 +207,13 @@ def create_monster(name:str,level:int, session: Session = Depends(get_session)):
 
 @app.get("/monsters/{name}")
 def get_monster_status(name: str, session: Session = Depends(get_session)):
-    # 1. Формируем запрос: "Выбрать всё из таблицы Hero, где имя совпадает"
+    # Выбрать всё из таблицы Hero, где имя совпадает
     statement = select(Monster).where(Monster.name == name)
     
-    # 2. Выполняем запрос и берем первый результат
+    # Выполняем запрос и берем первый результат
     monster = session.exec(statement).first()
     
-    # 3. Если герой не найден — возвращаем 404 ошибку
+    # Если герой не найден 
     if not monster:
         raise HTTPException(status_code=404, detail="Монстр не найден в этом подземелье")
     
@@ -240,11 +239,10 @@ def update_monster(name: str, monster_data: MonsterUpdate, session: Session = De
     if not db_monster:
         raise HTTPException(status_code=404, detail="Монстр не найден")
 
-    # 2. Превращаем присланные данные в словарь, исключая те, что не прислали (None)
+    # Превращаем присланные данные в словарь, исключая те, что не прислали (None)
     update_dict = monster_data.dict(exclude_unset=True)
 
     for key, value in update_dict.items():
-        # 3. Базовая логика ограничений (пример для HP)
         if key == "current_hp":
             # Не даем упасть ниже 0 и подняться выше макс_хп
             value = max(0, min(value, db_monster.max_hp))
@@ -253,7 +251,7 @@ def update_monster(name: str, monster_data: MonsterUpdate, session: Session = De
         # Применяем изменение к объекту
         setattr(db_monster, key, value)
 
-    # 4. Сохраняем
+    
     session.add(db_monster)
     session.commit()
     session.refresh(db_monster)
@@ -279,23 +277,37 @@ def get_hero_map(name: str, session: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail="Герой не найден")
 
     visible_map = []
-    # Показываем текущий этаж и +4 вперед
-    if hero.current_room < 10:
+    # Показываем текущий этаж 
+    if hero.current_room < 11:
         map = 0
     else:
         map = (hero.current_room //10 )*10
     
-    for f in range( map+1,map+11 ):
-        floor_data = {
-            "floor": f"F{f}",
-            "lanes": {
-                "Left (0)": get_room_type(f, 0, hero.world_seed),
-                "Center (1)": get_room_type(f, 1, hero.world_seed),
-                "Right (2)": get_room_type(f, 2, hero.world_seed)
-            },
-            "is_current": f == hero.current_room
-        }
-        visible_map.append(floor_data)
+    if hero.current_room < 11:
+        for f in range( map,map+11 ):
+            floor_data = {
+                "floor": f"F{f}",
+                "lanes": {
+                    "Left (0)": get_room_type(f, 0, hero.world_seed),
+                    "Center (1)": get_room_type(f, 1, hero.world_seed),
+                    "Right (2)": get_room_type(f, 2, hero.world_seed)
+                },
+                "is_current": f == hero.current_room
+            }
+            visible_map.append(floor_data)
+
+    else:
+        for f in range( map+1,map+11 ):
+            floor_data = {
+                "floor": f"F{f}",
+                "lanes": {
+                    "Left (0)": get_room_type(f, 0, hero.world_seed),
+                    "Center (1)": get_room_type(f, 1, hero.world_seed),
+                    "Right (2)": get_room_type(f, 2, hero.world_seed)
+                },
+                "is_current": f == hero.current_room
+            }
+            visible_map.append(floor_data)
         
     return {
         "hero_position": {"floor": hero.current_room, "lane": hero.current_lane},
@@ -310,6 +322,9 @@ def get_room_type(floor: int, lane: int, seed: int) -> str:
     random.seed(point_seed)
     
     # Правило 1: Босс каждый 10-й этаж и этаж перед посом всегда отдых
+    if floor == 0 :
+        return "R"
+
     if floor > 0 and floor % 10 == 0:
         return "BOSS"
     if floor > 0 and floor % 9 == 0:
