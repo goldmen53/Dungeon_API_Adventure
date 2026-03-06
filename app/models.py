@@ -183,8 +183,8 @@ class HeroRead(BaseModel):
     artifacts: List[ArtifactRead] = []
     bonus_flee: int
     total_flee: int
-    bonus_crit: Optional[int] = None
-    total_crit: Optional[int] = None
+    bonus_crit: int
+    total_crit: int
 
 class Encounters (SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

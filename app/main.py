@@ -447,8 +447,9 @@ def attack_monster(hero_name: str, session: Session = Depends(get_session)):
 
     # Проверка на крит
     if random.random() <= hero.total_crit/100: 
-        monster.current_hp -= hero_damage*2
-        log = [f"Критический удар! Вы ударили {monster.name} на {hero_damage} урона."]
+        crit_damage = hero_damage*2
+        monster.current_hp -= crit_damage
+        log = [f"Критический удар! Вы ударили {monster.name} на {crit_damage} урона."]
     else:
         monster.current_hp -= hero_damage
         log = [f"Вы ударили {monster.name} на {hero_damage} урона."]
