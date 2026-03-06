@@ -45,6 +45,7 @@ class Hero(SQLModel, table=True):
     mp: int = 50
     max_mp: int = 50
     hp: int = 100
+    bonus_flee: int = 0
     
     @property
     def total_vitality(self) -> int:
@@ -54,6 +55,10 @@ class Hero(SQLModel, table=True):
     @property
     def max_hp(self) -> int:
         return 20 + (self.total_vitality * 10)
+    
+    @property
+    def total_flee(self) -> int:
+        return (self.total_agility + self.bonus_flee)
     
     @property
     def total_dexterity(self) -> int:
@@ -131,6 +136,8 @@ class HeroUpdate(SQLModel):
     current_room: Optional[int] = None
     current_lane: Optional[int] = None
     active_monster_id: Optional[int] = None
+    bonus_flee: Optional[int] = None
+    total_flee: Optional[int] = None
 
 
 class MonsterUpdate(SQLModel):
@@ -166,6 +173,8 @@ class HeroRead(BaseModel):
     level: int
     gold: int
     artifacts: List[ArtifactRead] = []
+    bonus_flee: int
+    total_flee: int
 
 class Encounters (SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

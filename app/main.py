@@ -482,9 +482,14 @@ def attack_monster(hero_name: str, session: Session = Depends(get_session)):
 
     # --- ХОД МОНСТРА ---
     # Если выжил, бьет в ответ
-    monster_damage = random.randint(monster.min_attack, monster.max_attack)
-    hero.hp -= monster_damage
-    log.append(f"{monster.name} атакует вас на {monster_damage} урона.")
+
+
+    if random.random() > hero.total_flee/100 : # проверка на уворот 1 очко уворота = 1% 
+        monster_damage = random.randint(monster.min_attack, monster.max_attack)
+        hero.hp -= monster_damage
+        log.append(f"{monster.name} атакует вас на {monster_damage} урона.")
+    else:
+        log.append(f"{monster.name} промахнулся и не нанес урон")
 
     # Проверка смерти героя
     if hero.hp <= 0:
