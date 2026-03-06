@@ -43,7 +43,10 @@ def effect_altar_sacrifice(hero, session, choice):
         if hero.hp <= 30:
             raise HTTPException(status_code=400, detail="Слишком слаб для жертвы!")
         hero.hp -= 30
-        hero.strength += 3
+
+        hero.strength += 2
+        if hero.streenght > 50:
+            hero.hero.strength = 50
         msg = "Алтарь выпил вашу кровь, но наполнил мышцы сталью."
     else:
         hero.mp = min(hero.max_mp, hero.mp + 10)
@@ -56,11 +59,18 @@ def effect_altar_sacrifice(hero, session, choice):
 
 def effect_goblin_gamble(hero, session, choice):
     if choice == "play":
+
+        bet = 10
+        if hero.gold < bet:
+            msg = 'У Вас недостаточно золота для игры'
+            hero.active_event_id = None
+            return msg
+
         if random.random() > 0.5:
-            hero.gold += 10
+            hero.gold += bet
             msg = "Вы угадали! Гоблин ворчит и отдает мешочек монет."
         else:
-            hero.gold = max(0, hero.gold - 10)
+            hero.gold = max(0, hero.gold - bet)
             msg = "Не повезло! Гоблин ловко срезал ваш кошелек и убежал."
     else:
         msg = "Вы прошли мимо. Азарт — это путь к нищете."
@@ -71,14 +81,20 @@ def effect_goblin_gamble(hero, session, choice):
 def effect_ancient_library(hero, session, choice):
     if choice == "reach":
         if hero.agility >= random.randrange(10,16):
-            hero.agility += 2
+            hero.agility += 1
+            if hero.agility >50:
+                hero.agility = 50 
+
             msg = "Вы ловко взобрались по стеллажам и изучили свиток!"
         else:
             hero.hp -= 10
             msg = "Стеллаж рухнул прямо на вас. Больно..."
     elif choice == "decode":
         if hero.intelligence >= random.randrange(10,16):
-            hero.intelligence += 2
+            hero.intelligence += 1
+            if hero.intelligence >50:
+                hero.intelligence = 50 
+
             msg = "Сложные знаки сложились в знания. Вы стали мудрее."
         else:
             msg = "Текст кажется бессмысленным набором каракуль."
