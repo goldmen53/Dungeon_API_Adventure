@@ -444,8 +444,14 @@ def attack_monster(hero_name: str, session: Session = Depends(get_session)):
     # --- ХОД ГЕРОЯ ---
     # Урон героя (пока привяжем к силе strength)
     hero_damage = random.randint(hero.total_strength, hero.total_strength + 5)
-    monster.current_hp -= hero_damage
-    log = [f"Вы ударили {monster.name} на {hero_damage} урона."]
+
+    # Проверка на крит
+    if random.random() <= hero.total_crit/100: 
+        monster.current_hp -= hero_damage*2
+        log = [f"Критический удар! Вы ударили {monster.name} на {hero_damage} урона."]
+    else:
+        monster.current_hp -= hero_damage
+        log = [f"Вы ударили {monster.name} на {hero_damage} урона."]
 
     for art in hero.artifacts:
         handler = BATTLE_EFFECTS.get(art.effect_key)
