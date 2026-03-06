@@ -55,10 +55,10 @@ def effect_altar_sacrifice(hero, session, choice):
 def effect_goblin_gamble(hero, session, choice):
     if choice == "play":
         if random.random() > 0.5:
-            hero.gold += 50
+            hero.gold += 10
             msg = "Вы угадали! Гоблин ворчит и отдает мешочек монет."
         else:
-            hero.gold = max(0, hero.gold - 50)
+            hero.gold = max(0, hero.gold - 10)
             msg = "Не повезло! Гоблин ловко срезал ваш кошелек и убежал."
     else:
         msg = "Вы прошли мимо. Азарт — это путь к нищете."
@@ -68,14 +68,14 @@ def effect_goblin_gamble(hero, session, choice):
 
 def effect_ancient_library(hero, session, choice):
     if choice == "reach":
-        if hero.agility >= 12:
+        if hero.agility >= random.randrange(10,16):
             hero.agility += 2
             msg = "Вы ловко взобрались по стеллажам и изучили свиток!"
         else:
             hero.hp -= 10
             msg = "Стеллаж рухнул прямо на вас. Больно..."
     elif choice == "decode":
-        if hero.intelligence >= 12:
+        if hero.intelligence >= random.randrange(10,16):
             hero.intelligence += 2
             msg = "Сложные знаки сложились в знания. Вы стали мудрее."
         else:
