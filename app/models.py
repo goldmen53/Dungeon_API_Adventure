@@ -125,6 +125,12 @@ class HeroUpdate(SQLModel):
     max_hp: Optional[int] = None
     max_mp: Optional[int] = None
     current_mp: Optional[int] = None
+    stat_points: Optional[int] = None
+    active_event_id: Optional[int] = None
+    world_seed: Optional[int] = None
+    current_room: Optional[int] = None
+    current_lane: Optional[int] = None
+    active_monster_id: Optional[int] = None
 
 
 class MonsterUpdate(SQLModel):

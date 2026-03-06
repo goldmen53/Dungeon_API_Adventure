@@ -10,19 +10,21 @@ def encaunter_give_any_stat(hero, session: Session, stat: str):
     if not hero:
         raise HTTPException(status_code=404, detail="Герой не найден")
      
-    if stat == "str":
+    if stat == "str" and hero.strength <= 50:
         hero.strength += 1
-    elif stat == "agi":
+    elif stat == "agi" and hero.agility <=50: 
         hero.agility += 1
     
-    elif stat == "vit":
+    elif stat == "vit" and hero.vitality <= 50:
         hero.vitality += 1
         # Сразу обновляем макс ХП по  формуле 
         hero.hp += (hero.vitality*10)
+        if hero.hp > hero.max_hp:
+            hero.hp = hero.max_hp
     
-    elif stat == "int":
+    elif stat == "int" and hero.intelligence <= 50:
         hero.intelligence += 1
-    elif stat == "dex":
+    elif stat == "dex" and hero.dexterity <= 50:
         hero.dexterity += 1
 
     else:

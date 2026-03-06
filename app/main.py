@@ -522,24 +522,30 @@ def upgrade_stat(name: str, stat: str,amount: int, session: Session = Depends(ge
     if amount > hero.stat_points:
         raise HTTPException(status_code=400, detail="У вас недостаточно очков характеристик")
     
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="К-во не может быть отрицательным или равным нулю")
     
-    if stat == "str":
+    
+    
+    if stat == "str" and (amount + hero.strength) <=50:
         hero.strength += amount
-    elif stat == "agi":
+    elif stat == "agi" and (amount + hero.agility) <=50:
         hero.agility += amount
     
-    elif stat == "vit":
+    elif stat == "vit" and (amount + hero.vitality) <=50:
         hero.vitality += amount
         # Сразу обновляем макс ХП по  формуле 
         hero.hp += (hero.vitality*10)
-    
-    elif stat == "int":
+        if hero.hp > hero.max_hp:
+            hero.hp = hero.max_hp
+
+    elif stat == "int" and (amount + hero.intelligence) <=50:
         hero.intelligence += amount
-    elif stat == "dex":
+    elif stat == "dex" and (amount + hero.dexterity) <=50:
         hero.dexterity += amount
 
     else:
-        raise HTTPException(status_code=400, detail="Неверная характеристика")
+        raise HTTPException(status_code=400, detail="Неверная характеристика или характеристика >50")
     
     hero.stat_points -= amount
 
