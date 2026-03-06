@@ -1,13 +1,17 @@
 # app/main.py
 import random
+from tkinter import E
 from fastapi import FastAPI, Depends, HTTPException
 from app.database import init_db, get_session
-from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact,HeroRead
+from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact,HeroRead,Encounters
 from sqlmodel import Session, select
 from app.monsters import create_monster_params
 from fastapi.responses import FileResponse
 from app.effects import BATTLE_EFFECTS
 from app.artifacts import PRESET_ARTIFACTS
+from app.encounters import PRESET_ENCOUNTERS
+from app.encounters_effects import ENCAUNTERS_EFFECTS
+
 
 
 app = FastAPI(title="Dungeon_API_Adventure")
@@ -18,6 +22,15 @@ def init_artifacts(session: Session):
         exists = session.exec(select(Artifact).where(Artifact.name == data["name"])).first()
         if not exists:
             new_art = Artifact(**data)
+            session.add(new_art)
+    session.commit()
+
+def init_encounters(session: Session):
+    for data in PRESET_ENCOUNTERS:
+        # Проверяем, существует ли уже такое событие
+        exists = session.exec(select(Encounters).where(Encounters.name == data["name"])).first()
+        if not exists:
+            new_art = Encounters(**data)
             session.add(new_art)
     session.commit()
 
@@ -35,14 +48,13 @@ def on_startup():
     
     try:
         init_artifacts(session)
+        init_encounters(session)
     finally:
         session.close() # Всегда закрываем сессию вручную
-
 
 @app.get("/")
 def welcome():
     return {"message": "Подземелье ждет!"}
-
 
 @app.post("/heroes/create")
 def create_hero(name: str, session: Session = Depends(get_session)):
@@ -269,7 +281,6 @@ def get_all_monsters(session: Session = Depends(get_session)):
     
     return monsters
 
-    
 @app.get("/heroes/{name}/map")
 def get_hero_map(name: str, session: Session = Depends(get_session)):   
     hero = session.exec(select(Hero).where(Hero.name == name)).first()
@@ -314,7 +325,6 @@ def get_hero_map(name: str, session: Session = Depends(get_session)):
         "map_preview": visible_map
     }
 
-
 def get_room_type(floor: int, lane: int, seed: int) -> str:
     # Создаем уникальный сид для этой конкретной точки пространства
     # Чтобы комнаты на разных этажах не повторялись предсказуемо
@@ -337,8 +347,6 @@ def get_room_type(floor: int, lane: int, seed: int) -> str:
     if roll < 0.75: return "E"  # 15% событие
     if roll < 0.90: return "S"   # 15% магазин
     return "R"                  # 10% отдых
-
-
 
 @app.post("/heroes/{name}/move")
 def move_hero(name: str, target_lane: int, session: Session = Depends(get_session)):
@@ -377,6 +385,31 @@ def move_hero(name: str, target_lane: int, session: Session = Depends(get_sessio
         hero.active_monster_id = new_monster.id
     else:
         hero.active_monster_id = None
+
+    if room_type == "E":
+        # Получаем все ивенты из базы
+
+        
+        all_events = session.exec(select(Encounters)).all()
+
+        if not all_events:
+        # Если событий нет, просто идем дальше или даем золото
+            hero.gold += 10
+            return {"message": "Тут должно было быть событие, но мир пуст. Ты нашел 10 золотых."}
+
+        selected_event = random.choice(all_events)
+        
+        # Блокируем героя этим ивентом
+        hero.active_event_id = selected_event.id
+        session.add(hero)
+        session.commit()
+        
+        return {
+            "type": "event",
+            "event": selected_event.name,
+            "message": "Вы встретили нечто странное..."
+        }
+
 
     #логика обовления магазина. При каждом шаге сбрасывем магазин и генерируем заново
     hero.current_shop_items = None
@@ -554,7 +587,6 @@ def give_artifact(hero_name: str, artifact_id: int, session: Session = Depends(g
         "current_artifacts": [a.name for a in hero.artifacts]
     }
 
-
 @app.get("/artifacts/all")
 def list_all_artifacts(session: Session = Depends(get_session)):
     artifacts = session.exec(select(Artifact)).all()
@@ -636,3 +668,25 @@ def buy_artifact(name: str, artifact_id: int, session: Session = Depends(get_ses
     
     return {"message": f"Куплено: {artifact.name}", "new_gold": hero.gold}
 
+
+@app.post("/heroes/{hero_id}/event/resolve") # Используем hero_id вместо name
+def resolve_event(hero_id: int, choice: str, session: Session = Depends(get_session)):
+    # Ищем по первичному ключу ID (это быстрее и надежнее)
+    hero = session.get(Hero, hero_id) 
+    
+    if not hero:
+        raise HTTPException(status_code=404, detail="Герой не найден")
+    
+    if not hero.active_event_id:
+        raise HTTPException(status_code=400, detail="У вас нет активных событий")
+
+    event = session.get(Encounters, hero.active_event_id)
+    
+    # Вызываем эффект из реестра
+    handler = ENCAUNTERS_EFFECTS.get(event.effect_key)
+    if handler:
+        message = handler(hero, session, choice)
+        session.commit()
+        return {"message": message, "hero": hero}
+    
+    raise HTTPException(status_code=500, detail="Ошибка обработки ивента")

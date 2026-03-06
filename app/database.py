@@ -8,6 +8,7 @@ engine = create_engine(DATABASE_URL, echo=False)
 def init_db():
     """Создает таблицы в базе данных на основе моделей SQLModel."""
     SQLModel.metadata.create_all(engine)
+    
 
 def get_session() -> Generator[Session, None, None]:
     """Функция-генератор для получения сессии БД в эндпоинтах FastAPI."""

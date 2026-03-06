@@ -87,6 +87,7 @@ class Hero(SQLModel, table=True):
     
     # Храним ID артефактов в магазине как строку, разделенную запятыми
     current_shop_items: Optional[str] = Field(default=None)
+    active_event_id: Optional[int] = Field(default=None, nullable=True)
 
 
     # ГЕОГРАФИЯ
@@ -159,3 +160,10 @@ class HeroRead(BaseModel):
     level: int
     gold: int
     artifacts: List[ArtifactRead] = []
+
+class Encounters (SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    description: str
+    effect_key: str
+    rarity: str = Field(default='base') 
