@@ -4,6 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from app.database import init_db, get_session
 import random
 
+
 def encaunter_give_any_stat(hero, session: Session, stat: str):
     
     hero = session.exec(select(Hero).where(Hero.name == hero.name)).first()
@@ -37,7 +38,6 @@ def encaunter_give_any_stat(hero, session: Session, stat: str):
     
     return f"Статистика {stat} увеличена!"
 
-
 def effect_altar_sacrifice(hero, session, choice):
     if choice == "sacrifice":
         if hero.hp <= 30:
@@ -54,8 +54,6 @@ def effect_altar_sacrifice(hero, session, choice):
     
     hero.active_event_id = None
     return msg
-
-
 
 def effect_goblin_gamble(hero, session, choice):
     if choice == "play":

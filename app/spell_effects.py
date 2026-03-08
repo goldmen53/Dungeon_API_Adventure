@@ -3,6 +3,8 @@ from app.models import Hero,Monster
 from fastapi import FastAPI, Depends, HTTPException
 from app.database import init_db, get_session
 import random
+from app.utils import give_monster_rewards
+
 
 def cast_fire_damage(hero ,session):
     if not hero.active_monster_id:
@@ -19,10 +21,12 @@ def cast_fire_damage(hero ,session):
     
     # Проверяем смерть монстра
     if monster.current_hp <= 0:
-        
-        # Тут можно вызвать твою функцию награды (золото, опыт)
+        reward_message = give_monster_rewards(hero, monster)
         hero.active_monster_id = None
-        return f"Огненный шар испепелил {monster.name}! Вы победили!"
+        session.delete(monster)
+
+
+        return f"Огненный шар испепелил {monster.name}! Вы победили! {reward_message}"
     
     return f"Огненный шар наносит {int(damage)} урона монстру {monster.name}!"
 
