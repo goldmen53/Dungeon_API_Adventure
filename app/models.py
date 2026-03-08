@@ -179,8 +179,8 @@ class SpellRead(BaseModel):
     level: int
     mp_cost: int 
     rarity: str # base,rare,epic,boss,store
-    mp_cost : int
-    effect_key : str    
+    effect_key : str 
+    price : int   
 
 class HeroRead(BaseModel):
     id: int
@@ -211,7 +211,8 @@ class Encounters (SQLModel, table=True):
 
 class Spell(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    name: str
+    name: str 
+    price : int = Field(default=10)
     description: str
     effect_key: Optional[str] = Field(default=None, nullable=True)
     mp_cost : int = Field(default=1)

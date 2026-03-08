@@ -218,7 +218,6 @@ def hero_rest(name: str, session: Session = Depends(get_session)):
         "gold_left": hero.gold
     }
 
-
 @app.post("/monsters/create")
 def create_monster(name:str,level:int, session: Session = Depends(get_session)):
 
