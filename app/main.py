@@ -2,8 +2,9 @@
 import random
 from tkinter import E
 from fastapi import FastAPI, Depends, HTTPException
+from app import monsters
 from app.database import init_db, get_session
-from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact,HeroRead,Encounters
+from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact,HeroRead,Encounters,Spell
 from sqlmodel import Session, select
 from app.monsters import create_monster_params
 from fastapi.responses import FileResponse
@@ -11,6 +12,8 @@ from app.effects import BATTLE_EFFECTS
 from app.artifacts import PRESET_ARTIFACTS
 from app.encounters import PRESET_ENCOUNTERS
 from app.encounters_effects import ENCAUNTERS_EFFECTS
+from app.spell_effects import SPELLS_EFFECTS
+from app.spells import PRESET_SPELLS
 
 
 
@@ -25,6 +28,18 @@ def init_artifacts(session: Session):
             session.add(new_art)
     session.commit()
 
+def init_spells(session: Session):
+    for s_data in PRESET_SPELLS:
+        # Проверяем, существует ли уже спелл с таким именем
+        statement = select(Spell).where(Spell.name == s_data["name"])
+        existing_spell = session.exec(statement).first()
+        
+        if not existing_spell:
+            new_spell = Spell(**s_data)
+            session.add(new_spell)
+    
+    session.commit()
+
 def init_encounters(session: Session):
     for data in PRESET_ENCOUNTERS:
         # Проверяем, существует ли уже такое событие
@@ -33,6 +48,31 @@ def init_encounters(session: Session):
             new_art = Encounters(**data)
             session.add(new_art)
     session.commit()
+
+def give_monster_rewards(hero, monster):
+    
+    # Расчет золота
+    gold_gain = random.randint(monster.min_gold, monster.max_gold)
+    hero.gold += gold_gain
+    
+    # Расчет опыта 
+    xp_gain = monster.xp_reward
+    hero.xp += xp_gain
+    
+    # Очистка состояния боя
+    hero.active_monster_id = None
+    
+    # 4. Проверка на повышение уровня (если у тебя есть такая логика)
+    lvl_up_msg = ""
+    if hero.xp >= 100:
+        hero.level+=1
+        hero.stat_points+=5
+        hero.xp -= 100
+        hero.hp = hero.max_hp
+        hero.mp = hero.max_mp
+        lvl_up_msg = f'Вы получили {hero.level} уровень !'
+
+    return f"Победа! Получено золота: {gold_gain}, опыта: {xp_gain}.{lvl_up_msg}"
 
 @app.get("/")
 def read_index():
@@ -49,6 +89,7 @@ def on_startup():
     try:
         init_artifacts(session)
         init_encounters(session)
+        init_spells(session)
     finally:
         session.close() # Всегда закрываем сессию вручную
 
@@ -178,35 +219,6 @@ def hero_rest(name: str, session: Session = Depends(get_session)):
         "gold_left": hero.gold
     }
 
-@app.post("/heroes/{name}/spell/heal")
-def spell_heal(name: str, session: Session = Depends(get_session)):
-    hero = session.exec(select(Hero).where(Hero.name == name)).first()
-    base_power= 5
-    spell_power= base_power + hero.intelligence
-
-    mp_cost = 1
-    if hero.mp < mp_cost:
-        return {"message": "Недостаточно МP"}
-    if hero.hp == hero.max_hp:
-        return {"message": "Герой уже полностью здоров"}
-    
-    hero.mp -= mp_cost
-
-    if hero.hp + spell_power > hero.max_hp:
-        hero.hp = hero.max_hp
-        
-    else : hero.hp+=spell_power
-
-    session.add(hero)
-    session.commit()
-    session.refresh(hero)
-
-    return {
-        "message": (
-            f" {hero.name} шепчет заклинание... Восстановлено {spell_power} HP. "
-            f"Текущее состояние: {hero.hp}/{hero.max_hp} HP, {hero.mp}/{hero.max_mp} MP."
-        )
-    }
 
 @app.post("/monsters/create")
 def create_monster(name:str,level:int, session: Session = Depends(get_session)):
@@ -464,27 +476,14 @@ def attack_monster(hero_name: str, session: Session = Depends(get_session)):
 
     # Проверка смерти монстра
     if monster.current_hp <= 0:
-        monster.current_hp = 0
-        
-        
-        # Выдаем награду
-        gold_gain = random.randint(monster.min_gold, monster.max_gold)
-        hero.gold += gold_gain
-        hero.xp += monster.xp_reward
-        hero.active_monster_id = None # Путь свободен
-
-        if hero.xp >= 100:
-            hero.level+=1
-            hero.stat_points+=5
-            hero.xp -= 100
-            hero.hp = hero.max_hp
-            hero.mp = hero.max_mp
-            log.append(f'Вы получили {hero.level} уровень !')
+        reward_message = give_monster_rewards(hero, monster)
+        # Удаляем монстра из базы, чтобы не засорять мир трупами
+        session.delete(monster)
         session.add(monster)
         session.add(hero)
         session.commit()
         
-        log.append(f"{monster.name} убит! Вы получили {gold_gain} золота и {monster.xp_reward} опыта.")
+        log.append(f"{monster.name} убит! Вы получили {reward_message}")
         return {"status": "victory", "log": log, "hero": hero}
 
     # --- ХОД МОНСТРА ---
@@ -686,7 +685,6 @@ def buy_artifact(name: str, artifact_id: int, session: Session = Depends(get_ses
     
     return {"message": f"Куплено: {artifact.name}", "new_gold": hero.gold}
 
-
 @app.post("/heroes/{hero_id}/event/resolve") # Используем hero_id вместо name
 def resolve_event(hero_id: int, choice: str, session: Session = Depends(get_session)):
     # Ищем по первичному ключу ID (это быстрее и надежнее)
@@ -708,3 +706,47 @@ def resolve_event(hero_id: int, choice: str, session: Session = Depends(get_sess
         return {"message": message, "hero": hero}
     
     raise HTTPException(status_code=500, detail="Ошибка обработки ивента")
+
+@app.get("/spell/all")
+def list_all_spell(session: Session = Depends(get_session)):
+    spells = session.exec(select(Spell)).all()
+    return spells
+
+@app.post("/heroes/{hero_name}/cast/{spell_id}")
+def cast_spell(hero_name: str, spell_id:int ,session: Session = Depends(get_session)):
+    statement = select(Hero).where(Hero.name == hero_name)
+    hero = session.exec(statement).first()
+    if not hero:
+        raise HTTPException(status_code=404, detail="Герой не найден")
+    
+    spell = session.get(Spell, spell_id)
+    if not spell:
+        raise HTTPException(status_code=404, detail="Заклинание не найдено")
+    
+    #  знает ли герой этот спелл
+    # if spell not in hero.spells:
+    #     raise HTTPException(status_code=400, detail="Герой не знает этого заклинания")
+
+    #  Хватает ли маны
+    if hero.mp < spell.mp_cost:
+        raise HTTPException(status_code=400, detail="Недостаточно маны!")
+    
+    handler = SPELLS_EFFECTS.get(spell.effect_key)
+    if handler:
+        # Тратим ману перед кастом
+        hero.mp -= spell.mp_cost
+        
+        # Передаем сессию, героя и, возможно, монстра (если идет бой)
+        message = handler(hero, session) 
+        
+        session.add(hero)
+        session.commit()
+        session.refresh(hero)
+        return {"message": message, "current_mp": hero.mp, "hero": hero}
+    
+    raise HTTPException(status_code=500, detail="У этого заклинания нет программного эффекта")
+    
+    
+    
+
+

@@ -8,6 +8,10 @@ class HeroArtifactLink(SQLModel, table=True):
     hero_id: Optional[int] = Field(default=None, foreign_key="hero.id", primary_key=True)
     artifact_id: Optional[int] = Field(default=None, foreign_key="artifact.id", primary_key=True)
 
+class HeroSpellLink(SQLModel, table=True):
+    hero_id: Optional[int] = Field(default=None, foreign_key="hero.id", primary_key=True)
+    spell_id: Optional[int] = Field(default=None, foreign_key="spell.id", primary_key=True)
+
 class Artifact(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
@@ -93,7 +97,8 @@ class Hero(SQLModel, table=True):
     gold: int = 0
     stat_points: int = Field(default=5) # Даем 5 очков на старте
 
-    artifacts: List[Artifact] = Relationship(back_populates="heroes", link_model=HeroArtifactLink)
+    artifacts: List["Artifact"] = Relationship(back_populates="heroes", link_model=HeroArtifactLink)
+    spells: List["Spell"] = Relationship(back_populates="heroes", link_model=HeroSpellLink)
     
     # Храним ID артефактов в магазине как строку, разделенную запятыми
     current_shop_items: Optional[str] = Field(default=None)
@@ -192,3 +197,15 @@ class Encounters (SQLModel, table=True):
     description: str
     effect_key: str
     rarity: str = Field(default='base') 
+
+
+class Spell(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    description: str
+    effect_key: Optional[str] = Field(default=None, nullable=True)
+    mp_cost : int = Field(default=1)
+    level: int = Field(default=1)
+    rarity: str = Field(default="base") # base,rare,epic,boss,store
+    heroes: List["Hero"] = Relationship(back_populates="spells", link_model=HeroSpellLink)
+    
