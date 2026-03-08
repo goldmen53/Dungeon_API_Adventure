@@ -171,7 +171,16 @@ class ArtifactRead(BaseModel):
     level: int
     cost: int 
     rarity: str # base,rare,epic,boss,store
-    
+
+class SpellRead(BaseModel):
+    id : int
+    name: str
+    description: str
+    level: int
+    mp_cost: int 
+    rarity: str # base,rare,epic,boss,store
+    mp_cost : int
+    effect_key : str    
 
 class HeroRead(BaseModel):
     id: int
@@ -190,6 +199,7 @@ class HeroRead(BaseModel):
     total_flee: int
     bonus_crit: int
     total_crit: int
+    spells: List[SpellRead] = []
 
 class Encounters (SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

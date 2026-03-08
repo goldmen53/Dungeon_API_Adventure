@@ -745,7 +745,33 @@ def cast_spell(hero_name: str, spell_id:int ,session: Session = Depends(get_sess
     
     raise HTTPException(status_code=500, detail="У этого заклинания нет программного эффекта")
     
+@app.post("/admin/give_spell")
+def give_spell(hero_name: str, spell_id: int, session: Session = Depends(get_session)):
+    # Ищем героя
+    hero = session.exec(select(Hero).where(Hero.name == hero_name)).first()
+    if not hero:
+        raise HTTPException(status_code=404, detail="Герой не найден")
     
+    # Ищем артефакт
+    spell = session.get(Spell, spell_id)
+    if not spell:
+        raise HTTPException(status_code=404, detail="Заклинание не найдено")
+
+    # Проверка: нет ли у героя уже такого предмета
+    if spell in hero.spells:
+        raise HTTPException(status_code=400, detail="У героя уже есть это заклинание")
+
+    # ДОБАВЛЯЕМ СВЯЗЬ
+    # Благодаря Relationship и LinkTable
+    hero.spells.append(spell)
+    
+    session.add(hero)
+    session.commit()
+    
+    return {
+        "message": f"Артефакт '{spell.name}' успешно выдан герою {hero.name}",
+        "current_spell": [s.name for s in hero.spells]
+    }   
     
 
 
