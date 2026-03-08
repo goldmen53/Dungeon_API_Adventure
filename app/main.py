@@ -20,6 +20,29 @@ from typing import List
 
 app = FastAPI(title="Dungeon_API_Adventure")
 
+def get_room_type(floor: int, lane: int, seed: int) -> str:
+    # Создаем уникальный сид для этой конкретной точки пространства
+    # Чтобы комнаты на разных этажах не повторялись предсказуемо
+    point_seed = f"{seed}-{floor}-{lane}"
+    random.seed(point_seed)
+    
+    #  0 этаж всегда отдых
+    if floor == 0 :
+        return "R"
+    #  Босс каждый 10-й этаж и этаж перед посом всегда отдых
+    if floor > 0 and floor % 10 == 0:
+        return "BOSS"
+    if floor > 0 and floor % 9 == 0:
+        return "R"
+    
+    # Распределение типов комнат
+    # 'B' - Battle, 'S' - Shop, 'R' - Rest, 'E' - Event/Question
+    roll = random.random()
+    if roll < 0.6: return "B"   # 60% шанс битвы
+    if roll < 0.75: return "E"  # 15% событие
+    if roll < 0.90: return "S"   # 15% магазин
+    return "R"                  # 10% отдых
+
 def init_artifacts(session: Session):
     for data in PRESET_ARTIFACTS:
         # Проверяем, существует ли уже такой артефакт

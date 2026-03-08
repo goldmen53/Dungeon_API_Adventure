@@ -2,245 +2,234 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Dungeon Crawler</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            background-color: #121212;
-            color: #00ff00;
-            font-family: 'Courier New', Courier, monospace;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        #game-container {
-            width: 100%;
-            max-width: 800px;
-            border: 2px solid #00ff00;
-            padding: 20px;
-            border-radius: 10px;
-            background-color: #1e1e1e;
-        }
-        h1 { text-align: center; margin-top: 0; text-transform: uppercase; }
-        .panel { border: 1px dashed #555; padding: 10px; margin-bottom: 15px; }
-        .flex-row { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
-        input, button {
-            background-color: #000;
-            color: #00ff00;
-            border: 1px solid #00ff00;
-            padding: 10px 15px;
-            font-family: 'Courier New', Courier, monospace;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover { background-color: #00ff00; color: #000; }
-        button:disabled { border-color: #555; color: #555; cursor: not-allowed; }
-        #log {
-            height: 300px;
-            overflow-y: auto;
-            background-color: #000;
-            padding: 10px;
-            border: 1px solid #555;
-            font-size: 14px;
-            color: #aaa;
-        }
-        .log-entry { margin-bottom: 5px; border-bottom: 1px dotted #333; padding-bottom: 5px; }
-        .log-success { color: #00ff00; }
-        .log-error { color: #ff3333; }
-        .log-combat { color: #ffaa00; }
-
-        
-        #map-container {
-        margin-top: 20px;
-        display: flex;
-        flex-direction: column-reverse; /* Чтобы нижние этажи были внизу */
-        gap: 5px;
-        background: #000;
-        padding: 15px;
-        border: 1px solid #444;
-        }
-
-        .map-floor {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 5px;
-            border-bottom: 1px solid #222;
-        }
-        .map-floor.current {
-            background-color: rgba(0, 255, 0, 0.1);
-            border: 1px solid #00ff00;
-        }
-        .lane-node {
-            width: 60px;
-            text-align: center;
-            padding: 10px;
-            border: 1px solid #333;
-            border-radius: 5px;
-            font-size: 20px;
-        }
-        .lane-node.active-position {
-            background-color: #00ff00;
-            color: #000;
-            box-shadow: 0 0 10px #00ff00;
-        }
-        .floor-label { width: 40px; color: #888; font-size: 12px; }
-
-
-
+        .log-box { font-family: 'Courier New', Courier, monospace; scroll-behavior: smooth; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
     </style>
 </head>
-<body>
+<body class="bg-gray-900 text-gray-200 p-4 h-screen flex flex-col">
 
-<div id="game-container">
-    <h1>⚔️ Dungeon Crawler ⚔️</h1>
-    
-    <div class="panel flex-row">
-        <input type="text" id="heroName" placeholder="Имя героя" value="Yevhen">
-        <button onclick="createHero()">Создать героя</button>
-    </div>
-
-    <div class="panel flex-row">
-        <button onclick="move(0)">Лево (0)</button>
-        <button onclick="move(1)">Прямо (1)</button>
-        <button onclick="move(2)">Право (2)</button>
-    </div>
-
-    <div class="panel flex-row">
-        <button onclick="attack()" style="border-color: #ffaa00; color: #ffaa00;">⚔️ Атаковать</button>
-        <button onclick="rest()" style="border-color: #33ccff; color: #33ccff;">🏕️ Отдохнуть</button>
-    </div>
-    <div class="panel">
-    <div class="flex-row">
-        <button onclick="updateMap()" style="background: #333;">🗺️ Обновить карту</button>
-    </div>
-    <div id="map-container">
+    <header class="bg-gray-800 p-4 rounded-lg shadow-lg mb-4 flex justify-between items-center border border-gray-700">
+        <h1 class="text-2xl font-bold text-yellow-500">🐉 Dungeon Master Console</h1>
+        <div class="flex gap-2">
+            <input type="text" id="heroName" placeholder="Имя героя" class="px-3 py-1 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-yellow-500">
+            <button onclick="loadHero()" class="bg-blue-600 hover:bg-blue-500 px-4 py-1 rounded font-bold transition">Войти</button>
+            <button onclick="createHero()" class="bg-green-600 hover:bg-green-500 px-4 py-1 rounded font-bold transition">Создать</button>
         </div>
-</div>
+    </header>
 
-    <h3>Журнал событий:</h3>
-    <div id="log"></div>
-</div>
-
-<script>
-    const API_URL = ""; // Пусто, так как мы стучимся на тот же сервер
-    
-    function addLog(message, type = 'normal') {
-        const logDiv = document.getElementById('log');
-        const entry = document.createElement('div');
-        entry.className = 'log-entry';
+    <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 overflow-hidden">
         
-        if(type === 'error') entry.classList.add('log-error');
-        if(type === 'success') entry.classList.add('log-success');
-        if(type === 'combat') entry.classList.add('log-combat');
-
-        // Если это объект (JSON), форматируем его красиво
-        if (typeof message === 'object') {
-            entry.innerHTML = `<pre style="margin:0">${JSON.stringify(message, null, 2)}</pre>`;
-        } else {
-            entry.textContent = `> ${message}`;
-        }
-        
-        logDiv.appendChild(entry);
-        logDiv.scrollTop = logDiv.scrollHeight; // Скроллинг вниз
-    }
-
-    async function apiCall(method, endpoint) {
-        try {
-            const response = await fetch(API_URL + endpoint, { method: method });
-            const data = await response.json();
+        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 flex flex-col overflow-y-auto">
+            <h2 class="text-xl font-bold text-blue-400 border-b border-gray-600 pb-2 mb-2">Статус Героя</h2>
+            <pre id="heroStats" class="text-sm text-green-400 bg-gray-900 p-3 rounded mb-4 overflow-x-auto">Загрузите героя...</pre>
             
-            if (!response.ok) {
-                addLog(`Ошибка: ${data.detail || JSON.stringify(data)}`, 'error');
-                return null;
+            <h2 class="text-xl font-bold text-purple-400 border-b border-gray-600 pb-2 mb-2 mt-auto">Карта / Окружение</h2>
+            <pre id="mapPreview" class="text-sm text-gray-300 bg-gray-900 p-3 rounded overflow-x-auto">Пусто</pre>
+        </div>
+
+        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 flex flex-col gap-4 overflow-y-auto">
+            
+            <div class="p-3 bg-gray-700 rounded">
+                <h3 class="font-bold text-gray-300 mb-2">Движение (Вперед)</h3>
+                <div class="flex gap-2 justify-center">
+                    <button onclick="action('move', {target_lane: 0})" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded w-1/3">Влево (0)</button>
+                    <button onclick="action('move', {target_lane: 1})" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded w-1/3">Прямо (1)</button>
+                    <button onclick="action('move', {target_lane: 2})" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded w-1/3">Вправо (2)</button>
+                </div>
+            </div>
+
+            <div class="p-3 bg-red-900/30 border border-red-800 rounded">
+                <h3 class="font-bold text-red-400 mb-2">Бой и Магия</h3>
+                <div class="flex gap-2 mb-2">
+                    <button onclick="action('attack')" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded w-full font-bold">⚔️ Атака мечом</button>
+                </div>
+                <div class="flex gap-2">
+                    <input type="number" id="spellId" placeholder="ID Спелла" class="w-24 px-2 bg-gray-800 rounded border border-gray-600">
+                    <button onclick="castSpell()" class="bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded flex-1 font-bold">✨ Каст (Cast)</button>
+                </div>
+            </div>
+
+            <div class="p-3 bg-green-900/30 border border-green-800 rounded">
+                <h3 class="font-bold text-green-400 mb-2">Взаимодействие</h3>
+                <div class="flex gap-2 mb-2">
+                    <button onclick="action('rest')" class="bg-green-700 hover:bg-green-600 px-4 py-2 rounded flex-1">⛺ Отдых (-10G)</button>
+                    <button onclick="action('shop')" class="bg-yellow-600 hover:bg-yellow-500 px-4 py-2 rounded flex-1">🛒 Магазин</button>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="eventChoice" placeholder="Выбор (1 или 2)" class="w-32 px-2 bg-gray-800 rounded border border-gray-600">
+                    <button onclick="resolveEvent()" class="bg-teal-600 hover:bg-teal-500 px-4 py-2 rounded flex-1">🎲 Ивент (Resolve)</button>
+                </div>
+            </div>
+
+            <div class="p-3 bg-gray-900 border border-gray-700 rounded mt-auto">
+                <h3 class="font-bold text-gray-500 mb-2">Чит-панель (Админ)</h3>
+                <div class="flex gap-2 mb-2">
+                    <input type="number" id="artId" placeholder="ID Арт" class="w-20 px-2 bg-gray-800 rounded text-sm">
+                    <button onclick="adminGive('artifact')" class="bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded text-sm w-full">Выдать Артефакт</button>
+                </div>
+                <div class="flex gap-2">
+                    <input type="number" id="adminSpellId" placeholder="ID Спелл" class="w-20 px-2 bg-gray-800 rounded text-sm">
+                    <button onclick="adminGive('spell')" class="bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded text-sm w-full">Выдать Спелл</button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="bg-black p-4 rounded-lg border border-gray-700 flex flex-col relative">
+            <h2 class="text-xl font-bold text-gray-400 border-b border-gray-800 pb-2 mb-2">📜 Лог событий</h2>
+            <div id="logConsole" class="log-box flex-1 overflow-y-auto text-sm space-y-2 pb-4">
+                <div class="text-gray-500">Система инициализирована...</div>
+            </div>
+            <button onclick="document.getElementById('logConsole').innerHTML=''" class="absolute top-4 right-4 text-xs text-gray-500 hover:text-white">Очистить</button>
+        </div>
+
+    </div>
+
+    <script>
+        const API = "http://127.0.0.1:8000";
+        let heroData = null;
+
+        // Вспомогательная функция для добавления текста в лог
+        function log(message, type = 'info') {
+            const consoleBox = document.getElementById('logConsole');
+            const colors = { info: 'text-gray-300', success: 'text-green-400', error: 'text-red-400', warning: 'text-yellow-400', magic: 'text-purple-400' };
+            const time = new Date().toLocaleTimeString('ru-RU', { hour12: false });
+            
+            // Если пришел объект, форматируем его
+            if (typeof message === 'object') {
+                message = JSON.stringify(message, null, 2);
+                message = `<pre class="text-xs mt-1 text-gray-500">${message}</pre>`;
             }
-            return data;
-        } catch (error) {
-            addLog(`Сетевая ошибка: ${error}`, 'error');
-            return null;
+
+            consoleBox.innerHTML += `<div class="${colors[type]}"><span class="text-gray-600">[${time}]</span> ${message}</div>`;
+            consoleBox.scrollTop = consoleBox.scrollHeight;
         }
-    }
 
-    async function createHero() {
-        const name = document.getElementById('heroName').value;
-        if(!name) return addLog("Введите имя героя!", 'error');
-        
-        addLog(`Попытка создать героя ${name}...`);
-        const res = await apiCall('POST', `/heroes/create?name=${name}`);
-        if(res) addLog(res, 'success');
-        await updateMap();
-    }
+        // Получить имя из инпута
+        function getName() {
+            const name = document.getElementById('heroName').value.trim();
+            if (!name) log("Укажите имя героя!", "error");
+            return name;
+        }
 
-    async function move(lane) {
-        const name = document.getElementById('heroName').value;
-        addLog(`Идем на дорожку ${lane}...`);
-        const res = await apiCall('POST', `/heroes/${name}/move?target_lane=${lane}`);
-        if(res) addLog(res, 'normal');
-        await updateMap();
-    }
+        // 1. Создание героя
+        async function createHero() {
+            const name = getName(); if (!name) return;
+            try {
+                const res = await fetch(`${API}/heroes/create?name=${encodeURIComponent(name)}`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) { log(`Герой ${name} создан!`, "success"); loadHero(); } 
+                else { log(data.detail, "error"); }
+            } catch (e) { log(e.message, "error"); }
+        }
 
-    async function attack() {
-        const name = document.getElementById('heroName').value;
-        addLog(`Атакуем...`, 'combat');
-        const res = await apiCall('POST', `/battle/attack?hero_name=${name}`);
-        if(res) addLog(res, 'combat');
-    }
+        // 2. Загрузка статуса
+        async function loadHero() {
+            const name = getName(); if (!name) return;
+            try {
+                const res = await fetch(`${API}/heroes/${encodeURIComponent(name)}`);
+                const data = await res.json();
+                if (res.ok) {
+                    heroData = data;
+                    document.getElementById('heroStats').innerHTML = JSON.stringify(data, null, 2);
+                    log(`Данные героя ${name} загружены.`, "info");
+                    loadMap(); // Сразу грузим карту
+                } else {
+                    log(data.detail || "Герой не найден", "error");
+                }
+            } catch (e) { log(e.message, "error"); }
+        }
 
-    async function rest() {
-        const name = document.getElementById('heroName').value;
-        addLog(`Пытаемся отдохнуть...`);
-        const res = await apiCall('POST', `/heroes/${name}/rest`);
-        if(res) addLog(res, 'success');
-    }
+        // 3. Загрузка карты
+        async function loadMap() {
+            const name = getName(); if (!name) return;
+            try {
+                const res = await fetch(`${API}/heroes/${encodeURIComponent(name)}/map`);
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById('mapPreview').innerHTML = JSON.stringify(data.map_preview, null, 2);
+                }
+            } catch (e) {}
+        }
 
-    const ROOM_ICONS = {
-    'B': '⚔️', // Battle
-    'R': '🏕️', // Rest
-    'S': '💰', // Shop
-    'T': '🛡️', // Treasure
-    'BOSS': '👹' // Boss
-};
-
-async function updateMap() {
-    const name = document.getElementById('heroName').value;
-    const data = await apiCall('GET', `/heroes/${name}/map`);
-    if (!data) return;
-
-    const container = document.getElementById('map-container');
-    container.innerHTML = ''; // Очистка
-
-    data.map_preview.forEach(floor => {
-        const floorDiv = document.createElement('div');
-        floorDiv.className = `map-floor ${floor.is_current ? 'current' : ''}`;
-        
-        const label = document.createElement('div');
-        label.className = 'floor-label';
-        label.textContent = floor.floor;
-        floorDiv.appendChild(label);
-
-        // Отрисовка трех дорожек
-        [0, 1, 2].forEach(laneIdx => {
-            const laneKey = laneIdx === 0 ? "Left (0)" : laneIdx === 1 ? "Center (1)" : "Right (2)";
-            const type = floor.lanes[laneKey];
-            const node = document.createElement('div');
-            node.className = 'lane-node';
+        // 4. Универсальная функция для действий (Движение, Отдых, Магазин, Атака)
+        async function action(endpoint, queryParams = {}) {
+            const name = getName(); if (!name) return;
             
-            // Если это текущий этаж и текущая дорожка героя - подсвечиваем
-            if (floor.is_current && data.hero_position.lane === laneIdx) {
-                node.classList.add('active-position');
-                node.textContent = '👤'; // Иконка игрока
-            } else {
-                node.textContent = ROOM_ICONS[type] || type;
+            // Собираем URL
+            let url = "";
+            if (endpoint === 'attack') url = `${API}/battle/attack?hero_name=${encodeURIComponent(name)}`;
+            else if (endpoint === 'shop') url = `${API}/heroes/${encodeURIComponent(name)}/shop`; // Это GET
+            else {
+                const query = new URLSearchParams(queryParams).toString();
+                url = `${API}/heroes/${encodeURIComponent(name)}/${endpoint}${query ? '?'+query : ''}`;
             }
-            
-            floorDiv.appendChild(node);
-        });
 
-        container.appendChild(floorDiv);
-    });
-}
-</script>
+            const method = (endpoint === 'shop') ? 'GET' : 'POST';
 
+            try {
+                const res = await fetch(url, { method: method });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    if (endpoint === 'attack') log(`Бой: ${data.log[data.log.length-1]}`, "warning");
+                    else if (data.message) log(data.message, "success");
+                    else log(data, "info");
+                } else {
+                    log(data.detail, "error");
+                }
+                loadHero(); // Обновляем статы после любого действия
+            } catch (e) { log(e.message, "error"); }
+        }
+
+        // 5. Использование магии
+        async function castSpell() {
+            const name = getName(); if (!name) return;
+            const spellId = document.getElementById('spellId').value;
+            if (!spellId) { log("Введите ID заклинания", "error"); return; }
+
+            try {
+                const res = await fetch(`${API}/heroes/${encodeURIComponent(name)}/cast/${spellId}`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) { log(data.message, "magic"); loadHero(); } 
+                else { log(data.detail, "error"); }
+            } catch (e) { log(e.message, "error"); }
+        }
+
+        // 6. Решение ивента
+        async function resolveEvent() {
+            if (!heroData) { log("Сначала загрузите героя", "error"); return; }
+            const choice = document.getElementById('eventChoice').value;
+            if (!choice) { log("Введите выбор (например: 1)", "error"); return; }
+
+            try {
+                const res = await fetch(`${API}/heroes/${heroData.id}/event/resolve?choice=${choice}`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) { log(data.message, "success"); loadHero(); } 
+                else { log(data.detail, "error"); }
+            } catch (e) { log(e.message, "error"); }
+        }
+
+        // 7. Выдача читов (Админ)
+        async function adminGive(type) {
+            const name = getName(); if (!name) return;
+            const idInput = type === 'artifact' ? 'artId' : 'adminSpellId';
+            const id = document.getElementById(idInput).value;
+            if (!id) { log(`Введите ID для ${type}`, "error"); return; }
+
+            try {
+                const res = await fetch(`${API}/admin/give_${type}?hero_name=${encodeURIComponent(name)}&${type}_id=${id}`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) { log(data.message, "success"); loadHero(); } 
+                else { log(data.detail, "error"); }
+            } catch (e) { log(e.message, "error"); }
+        }
+    </script>
 </body>
 </html>
