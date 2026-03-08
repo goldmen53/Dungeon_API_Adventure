@@ -13,6 +13,8 @@ from app.encounters import PRESET_ENCOUNTERS
 from app.encounters_effects import ENCAUNTERS_EFFECTS
 from app.spell_effects import SPELLS_EFFECTS
 from app.spells import PRESET_SPELLS
+from typing import List
+
 
 
 
@@ -61,7 +63,7 @@ def give_monster_rewards(hero, monster):
     # Очистка состояния боя
     hero.active_monster_id = None
     
-    # 4. Проверка на повышение уровня (если у тебя есть такая логика)
+    # 4. Проверка на повышение уровня 
     lvl_up_msg = ""
     if hero.xp >= 100:
         hero.level+=1
@@ -124,7 +126,6 @@ def get_hero_status(name: str, session: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail="Герой не найден")
     
     return hero 
-from typing import List
 
 @app.get("/heroes/", response_model=List[HeroRead])
 def get_all_heroes(session: Session = Depends(get_session)):
@@ -334,29 +335,6 @@ def get_hero_map(name: str, session: Session = Depends(get_session)):
         "hero_position": {"floor": hero.current_room, "lane": hero.current_lane},
         "map_preview": visible_map
     }
-
-def get_room_type(floor: int, lane: int, seed: int) -> str:
-    # Создаем уникальный сид для этой конкретной точки пространства
-    # Чтобы комнаты на разных этажах не повторялись предсказуемо
-    point_seed = f"{seed}-{floor}-{lane}"
-    random.seed(point_seed)
-    
-    #  0 этаж всегда отдых
-    if floor == 0 :
-        return "R"
-    #  Босс каждый 10-й этаж и этаж перед посом всегда отдых
-    if floor > 0 and floor % 10 == 0:
-        return "BOSS"
-    if floor > 0 and floor % 9 == 0:
-        return "R"
-    
-    # Распределение типов комнат
-    # 'B' - Battle, 'S' - Shop, 'R' - Rest, 'E' - Event/Question
-    roll = random.random()
-    if roll < 0.6: return "B"   # 60% шанс битвы
-    if roll < 0.75: return "E"  # 15% событие
-    if roll < 0.90: return "S"   # 15% магазин
-    return "R"                  # 10% отдых
 
 @app.post("/heroes/{name}/move")
 def move_hero(name: str, target_lane: int, session: Session = Depends(get_session)):
