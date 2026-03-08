@@ -1,6 +1,5 @@
 # app/main.py
 import random
-from tkinter import E
 from fastapi import FastAPI, Depends, HTTPException
 from app import monsters
 from app.database import init_db, get_session
