@@ -20,7 +20,7 @@ app = FastAPI(title="Dungeon_API_Adventure")
 @app.get("/")
 def read_index():
     # FastAPI просто прочитает файл index.html и отдаст его в браузер
-    return FileResponse("index.html")
+    return FileResponse("visual.html")
 
 # Запускаем создание таблиц при старте
 @app.on_event("startup")
@@ -140,7 +140,7 @@ def hero_rest(name: str, session: Session = Depends(get_session)):
         )
     
     # ПРОВЕРКА ЗОЛОТА И ЗДОРОВЬЯ
-    heal_cost = 10
+    heal_cost = 1
     if hero.gold < heal_cost:
         raise HTTPException(status_code=400, detail="Нужно больше золота для припасов!")
     

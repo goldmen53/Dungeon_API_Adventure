@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dungeon Crowler — UI</title>
+  <style>
+    body{font-family: Arial,Helvetica,sans-serif;margin:12px;color:#222}
+    .container{display:grid;grid-template-columns:320px 1fr 360px;gap:12px}
+    .panel{background:#fff;border:1px solid #ddd;padding:10px;border-radius:6px}
+    h2{margin:6px 0 10px}
+    button{padding:6px 10px;margin:4px}
+    .map-grid{display:flex;flex-direction:column;gap:6px}
+    .floor{display:flex;gap:6px;align-items:center}
+    .lane{width:80px;height:48px;border-radius:4px;border:1px solid #ccc;display:flex;align-items:center;justify-content:center}
+    .current{box-shadow:0 0 0 3px rgba(50,150,255,0.12)}
+    .danger{background:#ffecec}
+    .safe{background:#ecffef}
+    .center-col{display:flex;flex-direction:column;gap:8px}
+    .log{height:320px;overflow:auto;background:#111;color:#eee;padding:8px;border-radius:6px;white-space:pre-wrap}
+    .stat-row{display:flex;justify-content:space-between;padding:4px 0}
+    label{display:block;font-size:13px;margin-bottom:4px}
+    input[type=text]{width:200px;padding:6px}
+  </style>
+</head>
+<body>
+  <h1>Dungeon Crowler — визуализация</h1>
+  <div class="container">
+    <div class="panel">
+      <h2>Герой</h2>
+      <div id="create-area">
+        <label>Имя героя</label>
+        <input id="hero-name-input" type="text" placeholder="Введите имя" />
+        <button onclick="createHero()">Создать / Войти</button>
+      </div>
+
+      <div id="hero-info" style="display:none;margin-top:8px">
+        <h3 id="hero-title"></h3>
+        <div class="stat-row"><strong>HP</strong><span id="hero-hp"></span></div>
+        <div class="stat-row"><strong>MP</strong><span id="hero-mp"></span></div>
+        <div class="stat-row"><strong>Сила</strong><span id="hero-str"></span></div>
+        <div class="stat-row"><strong>Ловкость</strong><span id="hero-dex"></span></div>
+        <div class="stat-row"><strong>Инт</strong><span id="hero-int"></span></div>
+        <div class="stat-row"><strong>Ловк.(аги)</strong><span id="hero-agi"></span></div>
+        <div class="stat-row"><strong>Вит</strong><span id="hero-vit"></span></div>
+        <div class="stat-row"><strong>Уровень</strong><span id="hero-level"></span></div>
+        <div class="stat-row"><strong>Золото</strong><span id="hero-gold"></span></div>
+        <div style="margin-top:8px">
+          <strong>Артефакты:</strong>
+          <ul id="hero-artifacts"></ul>
+        </div>
+        <div style="margin-top:8px">
+          <strong>Заклинания:</strong>
+          <ul id="hero-spells"></ul>
+        </div>
+
+        <div style="margin-top:8px">
+          <strong>Магазин:</strong>
+          <div><button onclick="fetchShop()">Открыть магазин</button></div>
+          <div id="shop-area" style="margin-top:6px"></div>
+        </div>
+
+        <div id="loot-area" style="margin-top:8px;display:none">
+          <strong>Доступный лут (выберите награду):</strong>
+          <div id="loot-list"></div>
+        </div>
+
+        <div style="margin-top:8px">
+          <button onclick="rest()">Отдохнуть (если можно)</button>
+        </div>
+
+        <div style="margin-top:8px">
+          <strong>Повышение характеристик:</strong><br>
+          <button onclick="upgrade('str')">+STR</button>
+          <button onclick="upgrade('agi')">+AGI</button>
+          <button onclick="upgrade('dex')">+DEX</button>
+          <button onclick="upgrade('int')">+INT</button>
+          <button onclick="upgrade('vit')">+VIT</button>
+          <span id="stat-points"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel center-col">
+      <h2>Карта и передвижение</h2>
+      <div id="map" class="map-grid"></div>
+
+      <div style="margin-top:8px">
+        <strong>Перейти по дорожке:</strong>
+        <button onclick="move(0)">Влево (0)</button>
+        <button onclick="move(1)">Центр (1)</button>
+        <button onclick="move(2)">Вправо (2)</button>
+      </div>
+
+      <div id="encounter" style="margin-top:10px"></div>
+      <div id="event-panel" style="margin-top:8px;display:none">
+        <div id="event-message"></div>
+        <label>Выбор (если есть):</label>
+        <input id="event-choice" type="text" placeholder="Введите выбор или оставьте пустым" />
+        <div style="margin-top:6px">
+          <button onclick="resolveEvent()">Решить событие</button>
+        </div>
+      </div>
+
+      <!-- Блок боя перемещён в правую колонку -->
+    </div>
+
+    <div class="panel">
+      <h2>Бой</h2>
+      <div id="monster-panel" style="display:none">
+        <div><strong id="monster-name"></strong></div>
+        <div id="monster-hp"></div>
+        <div style="margin-top:6px">
+          <button onclick="attack()">Атаковать</button>
+          <select id="spell-select"></select>
+          <button onclick="cast()">Каст</button>
+        </div>
+      </div>
+
+      <h2 style="margin-top:12px">Лог боя / событий</h2>
+      <div id="log" class="log"></div>
+    </div>
+  </div>
+
+  <script>
+    let currentHero = null;
+    let currentHeroId = null;
+    let currentMonster = null;
+
+    function log(msg){
+      const el = document.getElementById('log');
+      const item = document.createElement('div');
+      item.textContent = msg;
+      el.prepend(item);
+    }
+
+    async function createHero(){
+      const name = document.getElementById('hero-name-input').value.trim();
+      if(!name) return alert('Введите имя');
+      const resp = await fetch(`/heroes/create?name=${encodeURIComponent(name)}`,{method:'POST'});
+      const data = await resp.json();
+      if(!resp.ok){ alert(data.detail || JSON.stringify(data)); return }
+      currentHero = name;
+      currentHeroId = data.hero_id;
+      log(data.message || 'Герой создан');
+      await loadHero();
+    }
+
+    async function loadHero(){
+      if(!currentHero) return;
+      const resp = await fetch(`/heroes/${encodeURIComponent(currentHero)}`);
+      if(!resp.ok){ const e = await resp.json(); alert(e.detail||'Ошибка'); return }
+      const hero = await resp.json();
+      currentHeroId = hero.id || currentHeroId;
+      document.getElementById('hero-info').style.display='block';
+      document.getElementById('hero-title').innerText = hero.name;
+      document.getElementById('hero-hp').innerText = hero.hp + ' / ' + hero.max_hp;
+      document.getElementById('hero-mp').innerText = (hero.mp || 0) + ' / ' + (hero.max_mp || 0);
+      document.getElementById('hero-str').innerText = hero.total_strength;
+      document.getElementById('hero-dex').innerText = hero.total_dexterity;
+      document.getElementById('hero-int').innerText = hero.total_intelligence;
+      document.getElementById('hero-agi').innerText = hero.total_agility;
+      document.getElementById('hero-vit').innerText = hero.total_vitality;
+      document.getElementById('hero-level').innerText = hero.level;
+      document.getElementById('hero-gold').innerText = hero.gold;
+      document.getElementById('stat-points').innerText = ' Очки: ' + (hero.stat_points||0);
+
+      const artList = document.getElementById('hero-artifacts'); artList.innerHTML='';
+      (hero.artifacts||[]).forEach(a=>{ const li=document.createElement('li'); li.innerText = a.name; artList.appendChild(li) });
+      const spList = document.getElementById('hero-spells'); spList.innerHTML='';
+      (hero.spells||[]).forEach(s=>{ const li=document.createElement('li'); li.innerText = s.name; spList.appendChild(li) });
+
+      // render pending loot if any
+      const lootArea = document.getElementById('loot-area');
+      const lootList = document.getElementById('loot-list'); lootList.innerHTML='';
+      if(hero.pending_loot && hero.pending_loot.length>0){
+        lootArea.style.display = 'block';
+        hero.pending_loot.forEach(item=>{
+          const div = document.createElement('div');
+          const t = document.createElement('span'); t.innerText = `${item.name} - ${item.type}`;
+          const btn = document.createElement('button'); btn.innerText = 'Выбрать';
+          btn.onclick = ()=> pickLoot(item.type, item.id);
+          div.appendChild(t); div.appendChild(btn);
+          lootList.appendChild(div);
+        });
+      } else {
+        lootArea.style.display = 'none';
+      }
+
+      // fill spell select
+      const sel = document.getElementById('spell-select'); sel.innerHTML='';
+      (hero.spells||[]).forEach(s=>{ const o=document.createElement('option'); o.value=s.id; o.textContent = s.name + ' (MP:'+s.mp_cost+')'; sel.appendChild(o) });
+
+      // show map
+      await showMap();
+    }
+
+    async function showMap(){
+      const resp = await fetch(`/heroes/${encodeURIComponent(currentHero)}/map`);
+      if(!resp.ok) return;
+      const data = await resp.json();
+      const mapEl = document.getElementById('map'); mapEl.innerHTML='';
+      data.map_preview.forEach(floor=>{
+        const row = document.createElement('div'); row.className='floor';
+        const label = document.createElement('div'); label.style.width='60px'; label.innerText = floor.floor;
+        row.appendChild(label);
+        ['Left (0)','Center (1)','Right (2)'].forEach((k,i)=>{
+          const box = document.createElement('div'); box.className='lane';
+          const t = floor.lanes[k]; box.innerText = t;
+          if(floor.is_current && i=== data.hero_position.lane) box.classList.add('current');
+          if(t==='B' || t==='BOSS') box.classList.add('danger');
+          if(t==='S' || t==='R') box.classList.add('safe');
+          row.appendChild(box);
+        });
+        mapEl.appendChild(row);
+      });
+    }
+
+    // --- Shop functions ---
+    async function fetchShop(){
+      if(!currentHero) return alert('Сначала выберите героя');
+      const resp = await fetch(`/heroes/${encodeURIComponent(currentHero)}/shop`);
+      const data = await resp.json();
+      if(!resp.ok){ alert(data.detail||JSON.stringify(data)); return }
+      const area = document.getElementById('shop-area'); area.innerHTML='';
+      const gold = document.createElement('div'); gold.innerText = 'Золото: ' + data.hero_gold; area.appendChild(gold);
+      const items = data.items_for_sale || [];
+      if(items.length===0){ const p = document.createElement('div'); p.innerText='Магазин пуст'; area.appendChild(p); return }
+      items.forEach(it=>{
+        const row = document.createElement('div');
+        row.style.marginTop='6px';
+        const name = document.createElement('span'); name.innerText = `${it.name} (цена ${it.cost || it.price || '?'}) `;
+        const btn = document.createElement('button'); btn.innerText='Купить';
+        btn.onclick = ()=> buyItem(it.id);
+        row.appendChild(name); row.appendChild(btn);
+        area.appendChild(row);
+      });
+    }
+
+    async function buyItem(artifact_id){
+      if(!currentHero) return alert('Сначала выберите героя');
+      const resp = await fetch(`/heroes/${encodeURIComponent(currentHero)}/buy?artifact_id=${artifact_id}`,{method:'POST'});
+      const data = await resp.json();
+      if(!resp.ok){ alert(data.detail||JSON.stringify(data)); return }
+      log(data.message||'Куплено');
+      await loadHero();
+      await fetchShop();
+    }
+
+    async function pickLoot(choice_type, choice_id){
+      if(!currentHero) return alert('Сначала выберите героя');
+      const resp = await fetch(`/heroes/${encodeURIComponent(currentHero)}/pick_loot?choice_type=${choice_type}&choice_id=${choice_id}`,{method:'POST'});
+      const data = await resp.json();
+      if(!resp.ok){ alert(data.detail||JSON.stringify(data)); return }
+      log(data.message||'Выбран лут');
+      await loadHero();
+    }
+
+    async function move(target_lane){
+      if(!currentHero) return alert('Сначала выберите героя');
+      const resp = await fetch(`/heroes/${encodeURIComponent(currentHero)}/move?target_lane=${target_lane}`,{method:'POST'});
+      const data = await resp.json();
+      if(!resp.ok){ alert(data.detail||JSON.stringify(data)); return }
+      log('Ход: ' + (data.event||data.message||'...'));
+      if(data.type==='event'){
+        document.getElementById('encounter').innerText = data.message + ' ('+data.event+')';
+        document.getElementById('event-message').innerText = data.message + ' ('+data.event+')';
+        document.getElementById('event-panel').style.display = 'block';
+      }
+      if(data.monster){
+        currentMonster = data.monster;
+        showMonster(currentMonster);
+      } else {
+        currentMonster = null; hideMonster();
+      }
+      await loadHero();
+    }
+
+    function showMonster(m){
+      document.getElementById('monster-panel').style.display='block';
+      document.getElementById('monster-name').innerText = m.name + ' (Lvl '+m.level+')';
+      document.getElementById('monster-hp').innerText = (m.current_hp||m.max_hp) + ' / ' + m.max_hp;
+    }
+    function hideMonster(){ document.getElementById('monster-panel').style.display='none'; }
+
+    async function attack(){
+      if(!currentHero) return;
+      const resp = await fetch(`/battle/attack?hero_name=${encodeURIComponent(currentHero)}`,{method:'POST'});
+      const data = await resp.json();
+      if(!resp.ok){ alert(data.detail||JSON.stringify(data)); return }
+      (data.log||[]).forEach(l=>log(l));
+      if(data.status==='victory'){ log('Победа!'); currentMonster = null; hideMonster(); }
+      if(data.monster_hp) document.getElementById('monster-hp').innerText = data.monster_hp;
+      if(data.hero_hp) document.getElementById('hero-hp').innerText = data.hero_hp;
+      await loadHero();
+    }
+
+    async function cast(){
+      const sel = document.getElementById('spell-select'); if(!sel.value) return alert('Нет спеллов');
+      const spell_id = sel.value;
+      const resp = await fetch(`/heroes/${encodeURIComponent(currentHero)}/cast/${spell_id}`,{method:'POST'});
+      const data = await resp.json();
+      if(!resp.ok){ alert(data.detail||JSON.stringify(data)); return }
+      log(data.message||'Каст завершен');
+      await loadHero();
+    }
+
+    async function rest(){
+      const resp = await fetch(`/heroes/${encodeURIComponent(currentHero)}/rest`,{method:'POST'});
+      const data = await resp.json();
+      if(!resp.ok){ alert(data.detail||JSON.stringify(data)); return }
+      log(data.message||'Отдых успешен');
+      await loadHero();
+    }
+
+    async function upgrade(stat){
+      const resp = await fetch(`/heroes/${encodeURIComponent(currentHero)}/upgrade?stat=${stat}&amount=1`,{method:'POST'});
+      const data = await resp.json();
+      if(!resp.ok){ alert(data.detail||JSON.stringify(data)); return }
+      log(data.message||'Характеристика повышена');
+      await loadHero();
+    }
+
+    // Resolve encounter: try to find hero id and call resolve endpoint
+    async function resolveEvent(){
+      const choice = document.getElementById('event-choice').value || '';
+      let heroId = currentHeroId;
+      if(!heroId){
+        // fallback: fetch all heroes and find id by name
+        const all = await fetch('/heroes/');
+        if(all.ok){
+          const list = await all.json();
+          const found = list.find(h=>h.name === currentHero);
+          if(found) heroId = found.id;
+        }
+      }
+      if(!heroId) return alert('Не удалось определить ID героя');
+
+      const form = new URLSearchParams();
+      form.append('choice', choice);
+      const resp = await fetch(`/heroes/${heroId}/event/resolve`,{method:'POST', body: form});
+      const data = await resp.json();
+      if(!resp.ok){ alert(data.detail||JSON.stringify(data)); return }
+      log(data.message || 'Событие решено');
+      document.getElementById('event-panel').style.display = 'none';
+      document.getElementById('event-choice').value = '';
+      await loadHero();
+    }
+
+    // Try to prefill hero input from query param ?hero=
+    (function(){
+      const params = new URLSearchParams(location.search);
+      if(params.get('hero')){ document.getElementById('hero-name-input').value = params.get('hero'); }
+    })();
+  </script>
+</body>
+</html>

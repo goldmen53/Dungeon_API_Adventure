@@ -25,7 +25,7 @@ def give_monster_rewards(hero, monster,session):
     if is_boss:
         loot_drop_triggered = True
     else:
-        hero.fights_without_drop += 10 # Увеличиваем счетчик обычных боев
+        hero.fights_without_drop += 1 # Увеличиваем счетчик обычных боев
         # Шанс 10% ИЛИ счетчик дошел до 10
         if random.random() <= 0.10 or hero.fights_without_drop >= 10:
             loot_drop_triggered = True
