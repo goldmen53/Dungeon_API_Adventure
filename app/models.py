@@ -1,8 +1,13 @@
-from sqlmodel import SQLModel, Field, Relationship
-from typing import Optional, List
+from sqlmodel import SQLModel, Field, Relationship,Column,JSON
+from typing import Optional, List,Dict
 import random
 from pydantic import BaseModel
 
+class LootChoice(BaseModel):
+    type: str          # "artifact" или "spell"
+    id: int
+    name: str
+    description: Optional[str] = None
 
 class HeroArtifactLink(SQLModel, table=True):
     hero_id: Optional[int] = Field(default=None, foreign_key="hero.id", primary_key=True)
@@ -51,6 +56,7 @@ class Hero(SQLModel, table=True):
     hp: int = 100
     bonus_flee: int = 0
     bonus_crit: int = 0
+    
     
     @property
     def total_vitality(self) -> int:
@@ -103,6 +109,8 @@ class Hero(SQLModel, table=True):
     # Храним ID артефактов в магазине как строку, разделенную запятыми
     current_shop_items: Optional[str] = Field(default=None)
     active_event_id: Optional[int] = Field(default=None, nullable=True)
+    fights_without_drop: int = Field(default=0) 
+    pending_loot: List[Dict] = Field(default_factory=list, sa_column=Column(JSON))
 
 
     # ГЕОГРАФИЯ
@@ -200,6 +208,9 @@ class HeroRead(BaseModel):
     bonus_crit: int
     total_crit: int
     spells: List[SpellRead] = []
+    pending_loot: List[LootChoice] = []
+    class Config:
+        from_attributes = True
 
 class Encounters (SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

@@ -1,6 +1,6 @@
 # app/main.py
 import random
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException,Body
 from app import monsters
 from app.database import init_db, get_session
 from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact,HeroRead,Encounters,Spell
@@ -394,7 +394,7 @@ def attack_monster(hero_name: str, session: Session = Depends(get_session)):
 
     # Проверка смерти монстра
     if monster.current_hp <= 0:
-        reward_message = give_monster_rewards(hero, monster)
+        reward_message = give_monster_rewards(hero, monster,session)
         # Удаляем монстра из базы, чтобы не засорять мир трупами
         session.delete(monster)
         session.add(monster)
@@ -691,6 +691,76 @@ def give_spell(hero_name: str, spell_id: int, session: Session = Depends(get_ses
         "message": f"Артефакт '{spell.name}' успешно выдан герою {hero.name}",
         "current_spell": [s.name for s in hero.spells]
     }   
+
+
+@app.post("/heroes/{name}/pick_loot")
+def pick_loot(
+    name: str, 
+    choice_type: str, # "artifact" или "spell"
+    choice_id: int, 
+    session: Session = Depends(get_session)
+):
+    # Ищем героя
+    hero = session.exec(select(Hero).where(Hero.name == name)).first()
+    if not hero:
+        raise HTTPException(status_code=404, detail="Герой не найден")
+
+    #  Проверяем, есть ли вообще из чего выбирать
+    if not hero.pending_loot:
+        raise HTTPException(status_code=400, detail="У вас нет наград, ожидающих выбора")
+
+    #  Валидация выбора: проверяем, был ли этот предмет в списке предложенных
+    # pending_loot хранит список диктов: [{"type": "artifact", "id": 1, ...}, ...]
+    is_valid_choice = any(
+        item["type"] == choice_type and item["id"] == choice_id 
+        for item in hero.pending_loot
+    )
     
+    if not is_valid_choice:
+        raise HTTPException(status_code=400, detail="Этого предмета не было в списке ваших наград")
+
+    #  Начисляем награду
+    message = ""
+    if choice_type == "artifact":
+        artifact = session.get(Artifact, choice_id)
+        if not artifact:
+            raise HTTPException(status_code=404, detail="Артефакт не найден в базе")
+        
+        # Проверка на дубликаты (если артефакты уникальны)
+        if artifact in hero.artifacts:
+            # Если уже есть, можно дать компенсацию золотом
+            hero.gold += 50
+            message = f"У вас уже есть {artifact.name}. Вы получили 50 золотых вместо него."
+        else:
+            hero.artifacts.append(artifact)
+            message = f"Вы получили артефакт: {artifact.name}!"
+
+    elif choice_type == "spell":
+        spell = session.get(Spell, choice_id)
+        if not spell:
+            raise HTTPException(status_code=404, detail="Заклинание не найдено")
+        
+        if spell in hero.spells:
+            hero.gold += 30
+            message = f"Вы уже знаете заклинание {spell.name}. Получено 30 золотых."
+        else:
+            hero.spells.append(spell)
+            message = f"Вы выучили новое заклинание: {spell.name}!"
+    else:
+        raise HTTPException(status_code=400, detail="Неверный тип награды")
+
+    # Очищаем список выбора, чтобы нельзя было выбрать второй раз
+    hero.pending_loot = []
+    
+    session.add(hero)
+    session.commit()
+    session.refresh(hero)
+
+    return {
+        "message": message,
+        "hero_id": hero.id,
+        "current_artifacts": [a.name for a in hero.artifacts],
+        "current_spells": [s.name for s in hero.spells]
+    }   
 
 
