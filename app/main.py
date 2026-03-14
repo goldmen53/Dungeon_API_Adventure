@@ -3,7 +3,7 @@ import random
 from fastapi import FastAPI, Depends, HTTPException,Body
 from app import monsters
 from app.database import init_db, get_session
-from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact,HeroRead,Encounters,Spell
+from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact,HeroRead,Encounters,Spell,User
 from sqlmodel import Session, select
 from app.monsters import create_monster_params
 from fastapi.responses import FileResponse
@@ -12,6 +12,8 @@ from app.encounters_effects import ENCAUNTERS_EFFECTS
 from app.spell_effects import SPELLS_EFFECTS
 from typing import List
 from app.utils import give_monster_rewards,get_room_type,init_artifacts,init_spells,init_encounters
+from app.auth_utils import get_current_hero,get_password_hash,create_access_token,verify_password,get_current_user,verify_admin
+from fastapi.security import OAuth2PasswordRequestForm
 
 
 app = FastAPI(title="Dungeon_API_Adventure")
@@ -41,14 +43,23 @@ def welcome():
     return {"message": "Подземелье ждет!"}
 
 @app.post("/heroes/create")
-def create_hero(name: str, session: Session = Depends(get_session)):
-    # Проверяем, нет ли уже такого имени
-    existing = session.exec(select(Hero).where(Hero.name == name)).first()
-    if existing:
+def create_hero(
+    name: str, 
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user) # 1. Получаем юзера из токена
+):
+    # 2. Проверяем, нет ли уже такого имени (твой код)
+    existing_name = session.exec(select(Hero).where(Hero.name == name)).first()
+    if existing_name:
         raise HTTPException(status_code=400, detail="Это имя уже занято")
 
-    # Создаем героя. world_seed сгенерируется сам благодаря Field(default_factory)
-    new_hero = Hero(name=name)
+    # 3. Проверяем, нет ли уже героя у этого аккаунта (Roguelike правило: 1 юзер = 1 герой)
+    existing_hero = session.exec(select(Hero).where(Hero.user_id == current_user.id)).first()
+    if existing_hero:
+        raise HTTPException(status_code=400, detail="У вас уже есть активный герой")
+
+    # 4. Создаем героя, привязывая его к ID текущего юзера
+    new_hero = Hero(name=name, user_id=current_user.id)
     
     session.add(new_hero)
     session.commit()
@@ -60,6 +71,12 @@ def create_hero(name: str, session: Session = Depends(get_session)):
         "world_seed": new_hero.world_seed,
         "start_position": f"Floor: {new_hero.current_room}, Lane: {new_hero.current_lane}"
     }
+
+@app.get("/heroes/me", response_model=HeroRead)
+def get_my_hero(hero: Hero = Depends(get_current_hero)):
+    # Если герой есть, get_current_hero его вернет. 
+    # Если его нет (умер или не создан), вылетит 404 — и фронтенд поймет, что делать.
+    return hero
 
 @app.get("/heroes/{name}", response_model=HeroRead) 
 def get_hero_status(name: str, session: Session = Depends(get_session)):
@@ -278,9 +295,9 @@ def get_hero_map(name: str, session: Session = Depends(get_session)):
         "map_preview": visible_map
     }
 
-@app.post("/heroes/{name}/move")
-def move_hero(name: str, target_lane: int, session: Session = Depends(get_session)):
-    hero = session.exec(select(Hero).where(Hero.name == name)).first()
+@app.post("/heroes/move")
+def move_hero(target_lane: int,hero: Hero = Depends(get_current_hero),session: Session = Depends(get_session)):
+
     if not hero:
         raise HTTPException(status_code=404, detail="Герой не найден")
 
@@ -495,7 +512,7 @@ def upgrade_stat(name: str, stat: str,amount: int, session: Session = Depends(ge
     }
 
 @app.post("/admin/give_artifact")
-def give_artifact(hero_name: str, artifact_id: int, session: Session = Depends(get_session)):
+def give_artifact(hero_name: str, artifact_id: int, session: Session = Depends(get_session),is_admin: bool = Depends(verify_admin)):
     # Ищем героя
     hero = session.exec(select(Hero).where(Hero.name == hero_name)).first()
     if not hero:
@@ -763,4 +780,45 @@ def pick_loot(
         "current_spells": [s.name for s in hero.spells]
     }   
 
+@app.post("/auth/register", status_code=201)
+def register(
+    username: str = Body(...), 
+    password: str = Body(...), 
+    session: Session = Depends(get_session)
+):
+    # Проверяем, нет ли уже такого пользователя
+    existing_user = session.exec(select(User).where(User.username == username)).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Пользователь с таким именем уже существует")
 
+    # Хешируем пароль и сохраняем
+    new_user = User(
+        username=username,
+        hashed_password=get_password_hash(password) # Используем функцию из auth_utils
+    )
+    session.add(new_user)
+    session.commit()
+    return {"message": "Пользователь успешно зарегистрирован"}
+
+
+@app.post("/auth/token")
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(), 
+    session: Session = Depends(get_session)
+):
+    # 1. Ищем пользователя по имени
+    user = session.exec(select(User).where(User.username == form_data.username)).first()
+    
+    # 2. Проверяем существование и пароль
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неверное имя пользователя или пароль",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # 3. Создаем токен (в 'sub' кладем username или id)
+    access_token = create_access_token(data={"sub": user.username})
+    
+    # Важно: FastAPI ожидает именно такой формат ответа для OAuth2
+    return {"access_token": access_token, "token_type": "bearer"}

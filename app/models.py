@@ -3,6 +3,12 @@ from typing import Optional, List,Dict
 import random
 from pydantic import BaseModel
 
+class User(SQLModel, table=True):
+    id : Optional[int] = Field(default=None, primary_key=True)
+    username : str = Field(index=True, unique=True)
+    hashed_password : str
+
+
 class LootChoice(BaseModel):
     type: str          # "artifact" или "spell"
     id: int
@@ -42,9 +48,10 @@ class Artifact(SQLModel, table=True):
 class Hero(SQLModel, table=True):
     # Первичный ключ 
     id: Optional[int] = Field(default=None, primary_key=True)
-    
+    user_id: int = Field(foreign_key="user.id", unique=True)
     name: str = Field(index=True, unique=True)
     
+
     # Характеристики
     strength: int = 10
     dexterity: int = 10
