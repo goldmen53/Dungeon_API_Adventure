@@ -198,16 +198,22 @@
         
 
         <aside class="stats-panel panel">
-            <h2 style="margin-top: 0;">Статы</h2>
+            <h2 style="margin-top: 0;">Герой</h2>
             <div id="statsContent">
-                <div class="stat-line"><span>Уровень:</span> <span>1</span></div>
-                <div class="stat-line"><span>HP:</span> <span style="color: #ff5555;">100/100</span></div>
-                <div class="stat-line"><span>MP:</span> <span style="color: #5555ff;">50/50</span></div>
-                <div class="stat-line"><span>Золото:</span> <span style="color: #ffd700;">0</span></div>
-                <div class="stat-line"><span>Сила:</span> <span>10</span></div>
-                <div class="stat-line"><span>Ловкость:</span> <span>10</span></div>
+                <p>Загрузка данных...</p>
             </div>
         </aside>
+
+        <div id="modalCreateHero" class="modal">
+            <div class="modal-content">
+                <h2>Создать героя</h2>
+                <div class="form-group">
+                    <label>Имя героя</label>
+                    <input type="text" id="newHeroName" placeholder="Как назовем легенду?">
+                </div>
+                <button id="btnConfirmCreate" style="width: 100%;">Войти в подземелье</button>
+            </div>
+        </div>
 
         <main class="map-area panel">
             <div id="mapContent">
@@ -406,6 +412,7 @@
         });
 
         function updateUI() {
+            
             const token = localStorage.getItem('token');
             const guestBlock = document.getElementById('guestBlock');
             const userBlock = document.getElementById('userBlock');
@@ -419,7 +426,7 @@
                 // Попробуем достать имя пользователя (если ты сохранял его)
                 const savedUsername = localStorage.getItem('username');
                 playerNameSpan.textContent = savedUsername || "Игрок";
-                
+                loadHeroData();
                 addLog("Вы авторизованы.");
             } else {
                 // Если токена нет — показываем кнопки входа
@@ -439,8 +446,85 @@
         });
 
         // Вызываем при запуске страницы
-        updateUI();
+            updateUI();
+        // 1. Функция загрузки героя
+            async function loadHeroData() {
+                const token = localStorage.getItem('token');
+                if (!token) return;
 
+                try {
+                    const response = await fetch('http://127.0.0.1:8000/heroes/me', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.ok) {
+                        const hero = await response.json();
+                        renderStats(hero);
+                        addLog(`Герой ${hero.name} готов к приключениям.`);
+                    } else if (response.status === 404) {
+                        // Героя нет — показываем кнопку создания
+                        document.getElementById('statsContent').innerHTML = `
+                            <p>У вас еще нет героя.</p>
+                            <button onclick="openCreateHeroModal()" style="width: 100%;">Создать героя</button>
+                        `;
+                    }
+                } catch (error) {
+                    console.error("Ошибка загрузки героя:", error);
+                }
+            }
+
+            // 2. Функция отрисовки статов
+            function renderStats(hero) {
+                    const content = document.getElementById('statsContent');
+                    
+                    // Используем точные названия из твоего HeroRead
+                    content.innerHTML = `
+                        <div class="stat-line"><span>Имя:</span> <b>${hero.name}</b></div>
+                        <div class="stat-line"><span>Уровень:</span> <span>${hero.level}</span></div>
+                        <div class="stat-line"><span>HP:</span> <span style="color: #ff5555;">${hero.hp}/${hero.max_hp}</span></div>
+                        <div class="stat-line"><span>Золото:</span> <span style="color: #ffd700;">${hero.gold}</span></div>
+                        
+                        <div style="margin-top:10px; border-top: 1px solid #444; padding-top:50px;">
+                            <div class="stat-line"><span>Сила:</span> <span>${hero.total_strength}</span></div>
+                            <div class="stat-line"><span>Ловкость:</span> <span>${hero.total_dexterity}</span></div>
+                            <div class="stat-line"><span>Интеллект:</span> <span>${hero.total_intelligence}</span></div>
+                            <div class="stat-line"><span>Уворот:</span> <span>${hero.total_flee}</span></div>
+                            <div class="stat-line"><span>Крит:</span> <span>${hero.total_crit}%</span></div>
+                        </div>
+                    `;
+                }
+
+            // 3. Открытие модалки создания
+            function openCreateHeroModal() {
+                document.getElementById('modalCreateHero').style.display = 'block';
+            }
+
+            // 4. Отправка запроса на создание на бэкенд
+            document.getElementById('btnConfirmCreate').addEventListener('click', async () => {
+                const name = document.getElementById('newHeroName').value;
+                const token = localStorage.getItem('token');
+
+                if (!name) return alert("Введите имя!");
+
+                try {
+                    // Передаем name как query параметр, так как в твоем FastAPI эндпоинте это простая строка
+                    const response = await fetch(`http://127.0.0.1:8000/heroes/create?name=${encodeURIComponent(name)}`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (response.ok) {
+                        document.getElementById('modalCreateHero').style.display = 'none';
+                        addLog(`Герой ${name} создан!`);
+                        loadHeroData(); // Перезагружаем статы
+                    } else {
+                        const data = await response.json();
+                        alert(data.detail || "Ошибка при создании");
+                    }
+                } catch (error) {
+                    alert("Сервер недоступен");
+                }
+            });
 
     </script>
 </body>
