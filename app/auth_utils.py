@@ -104,5 +104,5 @@ from fastapi import Header, HTTPException
 
 def verify_admin(x_admin_token: str = Header(None)):
     if x_admin_token != ADMIN_SECRET_TOKEN:
-        raise HTTPException(status_code=403, detail="Доступ только для богов подземелья")
+        raise HTTPException(status_code=403, detail="Требуется админский доступ")
     return True

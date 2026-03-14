@@ -21,7 +21,7 @@ def cast_fire_damage(hero ,session):
     
     # Проверяем смерть монстра
     if monster.current_hp <= 0:
-        reward_message = give_monster_rewards(hero, monster)
+        reward_message = give_monster_rewards(hero, monster ,session)
         hero.active_monster_id = None
         session.delete(monster)
 
