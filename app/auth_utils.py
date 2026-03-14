@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 from app.database import get_session  # Твоя функция получения сессии
 from app.models import User, Hero
 import bcrypt
+from fastapi import Header, HTTPException
 
 
 
@@ -71,6 +72,10 @@ def get_current_user(
     try:
         # Расшифровываем токен
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        exp = payload.get("exp")
+        if datetime.utcnow() > datetime.fromtimestamp(exp):
+            raise credentials_exception
+
         username: str = payload.get("sub") # Мы договорились класть username или id в sub
         if username is None:
             raise credentials_exception
@@ -89,20 +94,40 @@ def get_current_hero(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session)
 ) -> Hero:
-    # Ищем героя, который принадлежит этому юзеру
+    # Ищем героя в базе
     hero = session.exec(select(Hero).where(Hero.user_id == current_user.id)).first()
     
+    # Если героя нет вообще
     if not hero:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="У вас еще нет созданного героя. Пожалуйста, создайте персонажа."
+            detail="Герой не найден. Создайте нового персонажа."
         )
+    
+    #ПРОВЕРКА НА СМЕРТЬ 
+    # if hero.hp <= 0:
+        
+    #     final_gold = hero.gold
+    #     final_level = hero.level
+        
+    #     session.delete(hero)
+    #     session.commit()
+        
+    #     raise HTTPException(
+    #         status_code=status.HTTP_410_GONE, # 410 означает, что ресурс удален навсегда
+    #         detail={
+    #             "error": "DEAD",
+    #             "message": "Ваш герой пал в бою!",
+    #             "score": {"gold": final_gold, "level": final_level}
+    #         }
+    #     )
+        
     return hero
 
-from fastapi import Header, HTTPException
 
 
 def verify_admin(x_admin_token: str = Header(None)):
     if x_admin_token != ADMIN_SECRET_TOKEN:
         raise HTTPException(status_code=403, detail="Требуется админский доступ")
     return True
+
