@@ -36,7 +36,7 @@ app.include_router(admin.router)
 @app.get("/")
 def read_index():
     # FastAPI просто прочитает файл index.html и отдаст его в браузер
-    return FileResponse("visual.html")
+    return FileResponse("index.html")
 
 # Запускаем создание таблиц при старте
 @app.on_event("startup")

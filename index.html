@@ -3,233 +3,445 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dungeon Console</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Dungeon Crawler</title>
     <style>
-        .log-box { font-family: 'Courier New', Courier, monospace; scroll-behavior: smooth; }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
-        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        /* Базовые настройки и темная тема */
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e1e;
+            --border-color: #333;
+            --text-color: #e0e0e0;
+            --accent-color: #bb86fc;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* Главный контейнер игры */
+        .game-container {
+            /* Ограничение ширины до 1200px и центрирование */
+            max-width: 1200px;
+            margin: 0 auto;
+            height: 100vh;
+            
+            /* CSS Grid макет */
+            display: grid;
+            grid-template-columns: 250px 1fr; /* Левая колонка 250px, правая занимает остаток */
+            grid-template-rows: 65px 1fr 200px; /* Шапка, Центр, Подвал (Лог) */
+            gap: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        /* Общие стили для всех панелей */
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto; /* Скролл, если контент не влезает */
+        }
+
+        /* 1. Верхняя панель (Авторизация слева) */
+        .top-bar {
+            grid-column: 1 / -1; /* Растягиваем на всю ширину сетки */
+            display: flex;
+            align-items: center;
+            justify-content: flex-end; /* Прижимаем кнопки влево */
+            gap: 10px;
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        /* 2. Левая панель (Статы) */
+        .stats-panel {
+            grid-column: 1 / 2;
+        }
+
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        /* 3. Карта (Центр) */
+        .map-area {
+            grid-column: 2 / 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #666;
+            position: relative;
+        }
+
+        /* 4. Лог (Низ) */
+        .log-panel {
+            grid-column: 1 / -1; /* Растягиваем на всю ширину */
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            color: #aaa;
+        }
+        .log-entry.new {
+            color: #fff;
+        }
+
+        /* --- АДАПТИВНОСТЬ ДЛЯ МОБИЛОК --- */
+        @media (max-width: 768px) {
+            .game-container {
+                /* Перестраиваем в одну колонку */
+                grid-template-columns: 1fr;
+                /* Шапка (60px), Карта (40vh), Статы (auto), Лог (остаток) */
+                grid-template-rows: 60px 40vh auto 1fr; 
+                height: 100vh;
+            }
+
+            /* Переназначаем позиции в сетке */
+            .top-bar { grid-column: 1; grid-row: 1; }
+            .map-area { grid-column: 1; grid-row: 2; }
+            .stats-panel { grid-column: 1; grid-row: 3; }
+            .log-panel { grid-column: 1; grid-row: 4; }
+        }
+
+        /* Стили для модального окна */
+        .modal {
+            display: none; /* Скрыто по умолчанию */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8); /* Затемнение */
+            backdrop-filter: blur(5px); /* Размытие фона */
+        }
+
+        .modal-content {
+            background-color: var(--panel-bg);
+            margin: 15% auto;
+            padding: 25px;
+            border: 1px solid var(--accent-color);
+            border-radius: 12px;
+            width: 300px;
+            box-shadow: 0 0 20px rgba(187, 134, 252, 0.2);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: var(--accent-color);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            background: #2a2a2a;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: white;
+            box-sizing: border-box;
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200 p-4 h-screen flex flex-col">
+<body>
 
-    <header class="bg-gray-800 p-4 rounded-lg shadow-lg mb-4 flex justify-between items-center border border-gray-700">
-        <h1 class="text-2xl font-bold text-yellow-500">🐉 Dungeon Master Console</h1>
-        <div class="flex gap-2">
-            <input type="text" id="heroName" placeholder="Имя героя" class="px-3 py-1 rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:border-yellow-500">
-            <button onclick="loadHero()" class="bg-blue-600 hover:bg-blue-500 px-4 py-1 rounded font-bold transition">Войти</button>
-            <button onclick="createHero()" class="bg-green-600 hover:bg-green-500 px-4 py-1 rounded font-bold transition">Создать</button>
-        </div>
-    </header>
-
-    <div class="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 overflow-hidden">
+    <div class="game-container">
         
-        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 flex flex-col overflow-y-auto">
-            <h2 class="text-xl font-bold text-blue-400 border-b border-gray-600 pb-2 mb-2">Статус Героя</h2>
-            <pre id="heroStats" class="text-sm text-green-400 bg-gray-900 p-3 rounded mb-4 overflow-x-auto">Загрузите героя...</pre>
-            
-            <h2 class="text-xl font-bold text-purple-400 border-b border-gray-600 pb-2 mb-2 mt-auto">Карта / Окружение</h2>
-            <pre id="mapPreview" class="text-sm text-gray-300 bg-gray-900 p-3 rounded overflow-x-auto">Пусто</pre>
-        </div>
-
-        <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 flex flex-col gap-4 overflow-y-auto">
-            
-            <div class="p-3 bg-gray-700 rounded">
-                <h3 class="font-bold text-gray-300 mb-2">Движение (Вперед)</h3>
-                <div class="flex gap-2 justify-center">
-                    <button onclick="action('move', {target_lane: 0})" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded w-1/3">Влево (0)</button>
-                    <button onclick="action('move', {target_lane: 1})" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded w-1/3">Прямо (1)</button>
-                    <button onclick="action('move', {target_lane: 2})" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded w-1/3">Вправо (2)</button>
-                </div>
+        <header class="top-bar panel">
+            <div id="guestBlock">
+                <button id="btnLogin">Войти</button>
+                <button id="btnRegister">Регистрация</button>
             </div>
 
-            <div class="p-3 bg-red-900/30 border border-red-800 rounded">
-                <h3 class="font-bold text-red-400 mb-2">Бой и Магия</h3>
-                <div class="flex gap-2 mb-2">
-                    <button onclick="action('attack')" class="bg-red-600 hover:bg-red-500 px-4 py-2 rounded w-full font-bold">⚔️ Атака мечом</button>
-                </div>
-                <div class="flex gap-2">
-                    <input type="number" id="spellId" placeholder="ID Спелла" class="w-24 px-2 bg-gray-800 rounded border border-gray-600">
-                    <button onclick="castSpell()" class="bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded flex-1 font-bold">✨ Каст (Cast)</button>
-                </div>
+            <div id="userBlock" style="display: none; align-items: center; gap: 15px; width: 100%;">
+                <span id="playerName" style="font-weight: bold; color: var(--accent-color);">Имя игрока</span>
+                <button id="btnLogout" style="background-color: #ff5555; color: white; margin-left: auto;">Выйти</button>
             </div>
+        </header>
 
-            <div class="p-3 bg-green-900/30 border border-green-800 rounded">
-                <h3 class="font-bold text-green-400 mb-2">Взаимодействие</h3>
-                <div class="flex gap-2 mb-2">
-                    <button onclick="action('rest')" class="bg-green-700 hover:bg-green-600 px-4 py-2 rounded flex-1">⛺ Отдых (-10G)</button>
-                    <button onclick="action('shop')" class="bg-yellow-600 hover:bg-yellow-500 px-4 py-2 rounded flex-1">🛒 Магазин</button>
-                </div>
-                <div class="flex gap-2">
-                    <input type="text" id="eventChoice" placeholder="Выбор (1 или 2)" class="w-32 px-2 bg-gray-800 rounded border border-gray-600">
-                    <button onclick="resolveEvent()" class="bg-teal-600 hover:bg-teal-500 px-4 py-2 rounded flex-1">🎲 Ивент (Resolve)</button>
-                </div>
+        
+
+        <aside class="stats-panel panel">
+            <h2 style="margin-top: 0;">Статы</h2>
+            <div id="statsContent">
+                <div class="stat-line"><span>Уровень:</span> <span>1</span></div>
+                <div class="stat-line"><span>HP:</span> <span style="color: #ff5555;">100/100</span></div>
+                <div class="stat-line"><span>MP:</span> <span style="color: #5555ff;">50/50</span></div>
+                <div class="stat-line"><span>Золото:</span> <span style="color: #ffd700;">0</span></div>
+                <div class="stat-line"><span>Сила:</span> <span>10</span></div>
+                <div class="stat-line"><span>Ловкость:</span> <span>10</span></div>
             </div>
+        </aside>
 
-            <div class="p-3 bg-gray-900 border border-gray-700 rounded mt-auto">
-                <h3 class="font-bold text-gray-500 mb-2">Чит-панель (Админ)</h3>
-                <div class="flex gap-2 mb-2">
-                    <input type="number" id="artId" placeholder="ID Арт" class="w-20 px-2 bg-gray-800 rounded text-sm">
-                    <button onclick="adminGive('artifact')" class="bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded text-sm w-full">Выдать Артефакт</button>
-                </div>
-                <div class="flex gap-2">
-                    <input type="number" id="adminSpellId" placeholder="ID Спелл" class="w-20 px-2 bg-gray-800 rounded text-sm">
-                    <button onclick="adminGive('spell')" class="bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded text-sm w-full">Выдать Спелл</button>
-                </div>
+        <main class="map-area panel">
+            <div id="mapContent">
+                Здесь будет отрисовываться подземелье...
             </div>
+        </main>
 
-        </div>
-
-        <div class="bg-black p-4 rounded-lg border border-gray-700 flex flex-col relative">
-            <h2 class="text-xl font-bold text-gray-400 border-b border-gray-800 pb-2 mb-2">📜 Лог событий</h2>
-            <div id="logConsole" class="log-box flex-1 overflow-y-auto text-sm space-y-2 pb-4">
-                <div class="text-gray-500">Система инициализирована...</div>
+        <footer class="log-panel panel">
+            <h3 style="margin-top: 0; margin-bottom: 10px;">Журнал событий</h3>
+            <div id="logContent">
+                <div class="log-entry">Добро пожаловать в подземелье! Пожалуйста, авторизуйтесь.</div>
             </div>
-            <button onclick="document.getElementById('logConsole').innerHTML=''" class="absolute top-4 right-4 text-xs text-gray-500 hover:text-white">Очистить</button>
-        </div>
+        </footer>
 
     </div>
 
+    {# Registration window #}
+    <div id="modalAuth" class="modal">
+    <div class="modal-content">
+    <span class="close">&times;</span>
+        <h2 id="modalTitle">Регистрация</h2>
+    <div id="authMessage" style="margin-bottom: 15px; font-size: 0.9rem; display: none; padding: 10px; border-radius: 4px;"></div>
+        <div class="form-group">
+            <label>Имя аккаунта</label>
+            <input type="text" id="authUsername" placeholder="Введите имя...">
+        </div>
+        <div class="form-group">
+            <label>Пароль</label>
+            <input type="password" id="authPassword" placeholder="Введите пароль...">
+        </div>
+        <button id="btnSubmitAuth" style="width: 100%; margin-top: 10px;">Подтвердить</button>
+    </div>
+    </div>
+
     <script>
-        const API = "http://127.0.0.1:8000";
-        let heroData = null;
+        // Здесь мы будем писать логику связи с твоим FastAPI
+        const modal = document.getElementById("modalAuth");
+        const btnSubmit = document.getElementById("btnSubmitAuth");
+        const closeBtn = document.querySelector(".close");
 
-        // Вспомогательная функция для добавления текста в лог
-        function log(message, type = 'info') {
-            const consoleBox = document.getElementById('logConsole');
-            const colors = { info: 'text-gray-300', success: 'text-green-400', error: 'text-red-400', warning: 'text-yellow-400', magic: 'text-purple-400' };
-            const time = new Date().toLocaleTimeString('ru-RU', { hour12: false });
+
+        // 1. Сначала объявляем функции
+        function addLog(message) {
+            const logContent = document.getElementById('logContent');
+            if (!logContent) return; // Защита от ошибок
+
+            const newEntry = document.createElement('div');
+            newEntry.className = 'log-entry new';
+            newEntry.textContent = `> ${message}`;
+            logContent.appendChild(newEntry);
             
-            // Если пришел объект, форматируем его
-            if (typeof message === 'object') {
-                message = JSON.stringify(message, null, 2);
-                message = `<pre class="text-xs mt-1 text-gray-500">${message}</pre>`;
-            }
-
-            consoleBox.innerHTML += `<div class="${colors[type]}"><span class="text-gray-600">[${time}]</span> ${message}</div>`;
-            consoleBox.scrollTop = consoleBox.scrollHeight;
+            // Прокрутка вниз
+            const logPanel = document.querySelector('.log-panel');
+            logPanel.scrollTop = logPanel.scrollHeight;
         }
 
-        // Получить имя из инпута
-        function getName() {
-            const name = document.getElementById('heroName').value.trim();
-            if (!name) log("Укажите имя героя!", "error");
-            return name;
+
+        document.getElementById('btnRegister').addEventListener('click', () => {
+            // Теперь addLog точно существует
+            addLog("Открытие окна регистрации...");
+            document.getElementById('modalTitle').textContent = "Регистрация";
+            document.getElementById('authMessage').style.display = 'none';
+            modal.style.display = "block";
+        });
+
+        // Открытие модалки при нажатии на "Регистрация"
+        document.getElementById('btnRegister').addEventListener('click', () => {
+            document.getElementById('modalTitle').textContent = "Регистрация";
+            modal.style.display = "block";
+        });
+
+        // Закрытие при клике на крестик или вне окна
+        closeBtn.onclick = () => modal.style.display = "none";
+        window.onclick = (event) => {
+            if (event.target == modal) modal.style.display = "none";
         }
 
-        // 1. Создание героя
-        async function createHero() {
-            const name = getName(); if (!name) return;
-            try {
-                const res = await fetch(`${API}/heroes/create?name=${encodeURIComponent(name)}`, { method: 'POST' });
-                const data = await res.json();
-                if (res.ok) { log(`Герой ${name} создан!`, "success"); loadHero(); } 
-                else { log(data.detail, "error"); }
-            } catch (e) { log(e.message, "error"); }
-        }
+        // Находим кнопку входа (нам нужно переключать режим модалки)
+        document.getElementById('btnLogin').addEventListener('click', () => {
+        document.getElementById('modalTitle').textContent = "Вход";
+        document.getElementById('authMessage').style.display = 'none';
+        modal.style.display = "block";
+        });
 
-        // 2. Загрузка статуса
-        async function loadHero() {
-            const name = getName(); if (!name) return;
-            try {
-                const res = await fetch(`${API}/heroes/${encodeURIComponent(name)}`);
-                const data = await res.json();
-                if (res.ok) {
-                    heroData = data;
-                    document.getElementById('heroStats').innerHTML = JSON.stringify(data, null, 2);
-                    log(`Данные героя ${name} загружены.`, "info");
-                    loadMap(); // Сразу грузим карту
-                } else {
-                    log(data.detail || "Герой не найден", "error");
+
+        // Обновляем обработчик btnSubmit, чтобы он понимал, регистрируемся мы или входим
+        btnSubmit.addEventListener('click', async () => {
+            const mode = document.getElementById('modalTitle').textContent; // "Вход" или "Регистрация"
+            const username = document.getElementById('authUsername').value;
+            const password = document.getElementById('authPassword').value;
+
+            if (mode === "Регистрация") {
+                // ... твой текущий код для /auth/register ...
+            } else {
+                // ЛОГИКА ВХОДА
+                try {
+                    // ВАЖНО: Для /auth/token FastAPI ждет Form Data
+                    const formData = new FormData();
+                    formData.append('username', username);
+                    formData.append('password', password);
+
+                    const response = await fetch('http://127.0.0.1:8000/auth/token', {
+                        method: 'POST',
+                        body: formData // Не используем JSON.stringify здесь!
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        localStorage.setItem('token', data.access_token);
+                        localStorage.setItem('username', username); // Сохраняем имя для интерфейса
+                        
+                        showAuthMessage("Успешный вход!", false);
+                        addLog(`Добро пожаловать, ${username}!`);
+                        
+                        setTimeout(() => {
+                            modal.style.display = "none";
+                            updateUI(); // Обновляем кнопки в шапке
+                        }, 1000);
+                    }
+                     else {
+                        showAuthMessage(data.detail || "Неверный логин или пароль");
+                    }
+                } catch (error) {
+                    console.error(error);
+                    showAuthMessage("Сервер недоступен при входе");
                 }
-            } catch (e) { log(e.message, "error"); }
-        }
-
-        // 3. Загрузка карты
-        async function loadMap() {
-            const name = getName(); if (!name) return;
-            try {
-                const res = await fetch(`${API}/heroes/${encodeURIComponent(name)}/map`);
-                const data = await res.json();
-                if (res.ok) {
-                    document.getElementById('mapPreview').innerHTML = JSON.stringify(data.map_preview, null, 2);
-                }
-            } catch (e) {}
-        }
-
-        // 4. Универсальная функция для действий (Движение, Отдых, Магазин, Атака)
-        async function action(endpoint, queryParams = {}) {
-            const name = getName(); if (!name) return;
-            
-            // Собираем URL
-            let url = "";
-            if (endpoint === 'attack') url = `${API}/battle/attack?hero_name=${encodeURIComponent(name)}`;
-            else if (endpoint === 'shop') url = `${API}/heroes/${encodeURIComponent(name)}/shop`; // Это GET
-            else {
-                const query = new URLSearchParams(queryParams).toString();
-                url = `${API}/heroes/${encodeURIComponent(name)}/${endpoint}${query ? '?'+query : ''}`;
             }
+        });
 
-            const method = (endpoint === 'shop') ? 'GET' : 'POST';
 
-            try {
-                const res = await fetch(url, { method: method });
-                const data = await res.json();
+
+        // ФУНКЦИЯ ОТПРАВКИ НА БЭКЕНД
+        btnSubmit.addEventListener('click', async () => {
+        const username = document.getElementById('authUsername').value;
+        const password = document.getElementById('authPassword').value;
+        const msgDiv = document.getElementById('authMessage');
+
+        // Очищаем предыдущие сообщения
+        msgDiv.style.display = 'none';
+
+        if (!username || !password) {
+            showAuthMessage("Заполните все поля!");
+            return;
+        }
+
+        try {
+            const response = await fetch('http://127.0.0.1:8000/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // УСПЕХ
+                showAuthMessage("Аккаунт успешно создан! Войдите.", false);
+                // Добавим запись в лог тоже, на память
+                addLog(`Аккаунт ${username} зарегистрирован.`);
                 
-                if (res.ok) {
-                    if (endpoint === 'attack') log(`Бой: ${data.log[data.log.length-1]}`, "warning");
-                    else if (data.message) log(data.message, "success");
-                    else log(data, "info");
-                } else {
-                    log(data.detail, "error");
-                }
-                loadHero(); // Обновляем статы после любого действия
-            } catch (e) { log(e.message, "error"); }
+                // Очистим поля ввода
+                document.getElementById('authUsername').value = "";
+                document.getElementById('authPassword').value = "";
+            } else {
+                // ОШИБКА (например, "Пользователь уже существует")
+                // Берем detail из ответа FastAPI
+                const errorText = Array.isArray(data.detail) ? data.detail[0].msg : data.detail;
+                showAuthMessage(errorText || "Ошибка регистрации");
+            }
+        } catch (error) {
+            showAuthMessage("Сервер недоступен");
+        }
+        });
+
+        // Пример добавления записи в лог
+        // Функция для вывода сообщений в самой модалке
+        function showAuthMessage(text, isError = true) {
+        const msgDiv = document.getElementById('authMessage');
+        msgDiv.textContent = text;
+        msgDiv.style.display = 'block';
+        
+        // Красный для ошибок, зеленый для успеха
+        msgDiv.style.backgroundColor = isError ? 'rgba(255, 85, 85, 0.2)' : 'rgba(85, 255, 85, 0.2)';
+        msgDiv.style.color = isError ? '#ff5555' : '#55ff55';
+        msgDiv.style.border = `1px solid ${isError ? '#ff5555' : '#55ff55'}`;
         }
 
-        // 5. Использование магии
-        async function castSpell() {
-            const name = getName(); if (!name) return;
-            const spellId = document.getElementById('spellId').value;
-            if (!spellId) { log("Введите ID заклинания", "error"); return; }
+        // Привязываем кнопки (пока как заглушки)
+        document.getElementById('btnLogin').addEventListener('click', () => {
+            addLog('Открываем окно входа...');
+        });
 
-            try {
-                const res = await fetch(`${API}/heroes/${encodeURIComponent(name)}/cast/${spellId}`, { method: 'POST' });
-                const data = await res.json();
-                if (res.ok) { log(data.message, "magic"); loadHero(); } 
-                else { log(data.detail, "error"); }
-            } catch (e) { log(e.message, "error"); }
+        document.getElementById('btnRegister').addEventListener('click', () => {
+            addLog('Открываем окно регистрации...');
+        });
+
+        function updateUI() {
+            const token = localStorage.getItem('token');
+            const guestBlock = document.getElementById('guestBlock');
+            const userBlock = document.getElementById('userBlock');
+            const playerNameSpan = document.getElementById('playerName');
+
+            if (token) {
+                // Если токен есть — пользователь вошел
+                guestBlock.style.display = 'none';
+                userBlock.style.display = 'flex';
+                
+                // Попробуем достать имя пользователя (если ты сохранял его)
+                const savedUsername = localStorage.getItem('username');
+                playerNameSpan.textContent = savedUsername || "Игрок";
+                
+                addLog("Вы авторизованы.");
+            } else {
+                // Если токена нет — показываем кнопки входа
+                guestBlock.style.display = 'block';
+                userBlock.style.display = 'none';
+            }
         }
 
-        // 6. Решение ивента
-        async function resolveEvent() {
-            if (!heroData) { log("Сначала загрузите героя", "error"); return; }
-            const choice = document.getElementById('eventChoice').value;
-            if (!choice) { log("Введите выбор (например: 1)", "error"); return; }
+        // Логика выхода
+        document.getElementById('btnLogout').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            addLog("Вы вышли из аккаунта.");
+            updateUI();
+            // Здесь можно также очистить статы героя на экране
+            location.reload(); // Простой способ сбросить состояние игры
+        });
 
-            try {
-                const res = await fetch(`${API}/heroes/${heroData.id}/event/resolve?choice=${choice}`, { method: 'POST' });
-                const data = await res.json();
-                if (res.ok) { log(data.message, "success"); loadHero(); } 
-                else { log(data.detail, "error"); }
-            } catch (e) { log(e.message, "error"); }
-        }
+        // Вызываем при запуске страницы
+        updateUI();
 
-        // 7. Выдача читов (Админ)
-        async function adminGive(type) {
-            const name = getName(); if (!name) return;
-            const idInput = type === 'artifact' ? 'artId' : 'adminSpellId';
-            const id = document.getElementById(idInput).value;
-            if (!id) { log(`Введите ID для ${type}`, "error"); return; }
 
-            try {
-                const res = await fetch(`${API}/admin/give_${type}?hero_name=${encodeURIComponent(name)}&${type}_id=${id}`, { method: 'POST' });
-                const data = await res.json();
-                if (res.ok) { log(data.message, "success"); loadHero(); } 
-                else { log(data.detail, "error"); }
-            } catch (e) { log(e.message, "error"); }
-        }
     </script>
 </body>
 </html>
