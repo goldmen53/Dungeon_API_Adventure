@@ -95,6 +95,53 @@
             position: relative;
         }
 
+        .upgrade-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .btn-plus {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-plus:disabled {
+            background-color: #444;
+            cursor: not-allowed;
+        }
+
+        .items-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .item-tag {
+            background: #333;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            cursor: default; /* Меняет курсор на вопросик при наведении */
+            border: 1px solid #555;
+        }
+
+        /* Подсветка редкости */
+        .rarity-base { border-color: #aaa; }
+        .rarity-rare { border-color: #55ff55; color: #55ff55; }
+        .rarity-epic { border-color: #bb86fc; color: #bb86fc; }
+        .rarity-boss { border-color: #ff5555; color: #ff5555; }
+
+
+
         /* 4. Лог (Низ) */
         .log-panel {
             grid-column: 1 / -1; /* Растягиваем на всю ширину */
@@ -460,6 +507,8 @@
                     if (response.ok) {
                         const hero = await response.json();
                         renderStats(hero);
+                        currentHeroCache = hero; // <--- Сохраняем данные здесь!
+                        renderStats(hero);
                         addLog(`Герой ${hero.name} готов к приключениям.`);
                     } else if (response.status === 404) {
                         // Героя нет — показываем кнопку создания
@@ -476,20 +525,101 @@
             // 2. Функция отрисовки статов
             function renderStats(hero) {
                     const content = document.getElementById('statsContent');
+
+                    // Формируем список артефактов
+                    const artifactsHtml = hero.artifacts && hero.artifacts.length > 0 
+                        ? hero.artifacts.map(art => `
+                            <span class="item-tag rarity-${art.rarity}" 
+                                title="${art.description}\nБонус силы: ${art.bonus_strength}\nУровень: ${art.level}">
+                                ${art.name}
+                            </span>`).join(' ')
+                        : '<span style="color: #666;">Пусто</span>';
+
+                    // Формируем список заклинаний
+                    const spellsHtml = hero.spells && hero.spells.length > 0 
+                        ? hero.spells.map(spell => `
+                            <span class="item-tag rarity-${spell.rarity}" 
+                                title="${spell.description}\nМана: ${spell.mp_cost}\nУрон/Эффект: ${spell.effect_key}">
+                                ${spell.name}
+                            </span>`).join(' ')
+                        : '<span style="color: #666;">Нет заклинаний</span>';
+
+
                     
                     // Используем точные названия из твоего HeroRead
                     content.innerHTML = `
-                        <div class="stat-line"><span>Имя:</span> <b>${hero.name}</b></div>
-                        <div class="stat-line"><span>Уровень:</span> <span>${hero.level}</span></div>
+                        <div class="stat-line"><span>Name:</span> <b>${hero.name}</b></div>
+                        <div class="stat-line"><span>Level:</span> <span>${hero.level}</span></div>
+                        <div class="stat-line"><span>XP:</span> <span>${hero.xp}/100</span></div>
                         <div class="stat-line"><span>HP:</span> <span style="color: #ff5555;">${hero.hp}/${hero.max_hp}</span></div>
-                        <div class="stat-line"><span>Золото:</span> <span style="color: #ffd700;">${hero.gold}</span></div>
+                        <div class="stat-line"><span>SP:</span> <span style="color: #3434eb;">${hero.mp}/${hero.max_mp}</span></div>
+                        <div class="stat-line"><span>Gold:</span> <span style="color: #ffd700;">${hero.gold}</span></div>
+
+                        <div class="stat-line">
+                        <span>Stat Points:</span> 
+                        <span>
+                            ${hero.stat_points} 
+                            ${hero.stat_points > 0 ? '<button onclick="openUpgradeModal()" style="padding: 2px 5px; margin-left:5px;">+</button>' : ''}
+                        </span>
+                        </div>
+
                         
-                        <div style="margin-top:10px; border-top: 1px solid #444; padding-top:50px;">
-                            <div class="stat-line"><span>Сила:</span> <span>${hero.total_strength}</span></div>
-                            <div class="stat-line"><span>Ловкость:</span> <span>${hero.total_dexterity}</span></div>
-                            <div class="stat-line"><span>Интеллект:</span> <span>${hero.total_intelligence}</span></div>
-                            <div class="stat-line"><span>Уворот:</span> <span>${hero.total_flee}</span></div>
-                            <div class="stat-line"><span>Крит:</span> <span>${hero.total_crit}%</span></div>
+                        <div style="margin-top:10px; border-top: 1px solid #444; padding-top:20px;">
+                            <div class="stat-line">
+                                <span>Strength:</span> 
+                                <div>
+                                    <span>${hero.total_strength}</span>
+                                    <span style="color: #4caf50;">+${hero.total_strength - hero.strength}</span>
+                                </div>
+                            </div>
+                            <div class="stat-line">
+                                <span>Dexterity:</span> 
+                                <div>
+                                    <span>${hero.total_dexterity}</span>
+                                    <span style="color: #4caf50;">+${hero.total_dexterity - hero.dexterity}</span>
+                                </div>
+                            </div>
+                            <div class="stat-line">
+                                <span>Agility:</span> 
+                                <div>
+                                    <span>${hero.total_agility}</span>
+                                    <span style="color: #4caf50;">+${hero.total_agility - hero.agility}</span>
+                                </div>
+                            </div>
+                            <div class="stat-line">
+                                <span>Intelligence:</span> 
+                                <div>
+                                    <span>${hero.total_intelligence}</span>
+                                    <span style="color: #4caf50;">+${hero.total_intelligence - hero.intelligence}</span>
+                                </div>
+                            </div>
+                            <div class="stat-line">
+                                <span>Vitality:</span> 
+                                <div>
+                                    <span>${hero.total_vitality}</span>
+                                    <span style="color: #4caf50;">+${hero.total_vitality - hero.vitality}</span>
+                                </div>
+                            </div>
+                            <div class="stat-line">
+                                <span>Flee:</span> 
+                                <span>${hero.total_flee}</span>
+                            </div>
+                            <div class="stat-line">
+                                <span>Crit:</span> 
+                                <span>${hero.total_crit}%</span>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:10px; border-top: 1px solid #444; padding-top:25px;">
+                                <div style="margin-top:10px;">
+                                <div style="font-size: 0.8rem; color: var(--accent-color); margin-bottom: 5px;">Артефакты:</div>
+                                <div class="items-container">${artifactsHtml}</div>
+                            </div>
+
+                            <div style="margin-top:10px;">
+                                <div style="font-size: 0.8rem; color: var(--accent-color); margin-bottom: 5px;">Заклинания:</div>
+                                <div class="items-container">${spellsHtml}</div>
+                            </div>
                         </div>
                     `;
                 }
@@ -524,8 +654,95 @@
                 } catch (error) {
                     alert("Сервер недоступен");
                 }
+
+
+                
+
             });
 
+
+            // 2. Открытие модалки
+            let currentHeroCache = null; // Будем хранить тут героя для удобства
+
+            function openUpgradeModal() {
+                document.getElementById('modalUpgrade').style.display = 'block';
+                renderUpgradeOptions();
+            }
+
+            function closeUpgradeModal() {
+                document.getElementById('modalUpgrade').style.display = 'none';
+            }
+
+            // 3. Отрисовка списка статов в модалке
+            function renderUpgradeOptions() {
+                const hero = currentHeroCache; // Предполагаем, что при загрузке данных мы сохранили героя в эту переменную
+                if (!hero) return;
+
+                document.getElementById('availablePoints').textContent = hero.stat_points;
+                const list = document.getElementById('upgradeList');
+                
+                // Массив статов для перебора (ключ для бэкенда : название для игрока : текущее значение)
+                const statsToUpgrade = [
+                    { key: 'str', label: 'Сила', val: hero.strength },
+                    { key: 'agi', label: 'Ловкость', val: hero.agility },
+                    { key: 'vit', label: 'Живучесть', val: hero.vitality },
+                    { key: 'int', label: 'Интеллект', val: hero.intelligence },
+                    { key: 'dex', label: 'Меткость', val: hero.dexterity }
+                ];
+
+                list.innerHTML = statsToUpgrade.map(s => `
+                    <div class="upgrade-row">
+                        <span>${s.label}: <b>${s.val}</b></span>
+                        <button class="btn-plus" 
+                                onclick="sendUpgrade('${s.key}')" 
+                                ${hero.stat_points <= 0 || s.val >= 50 ? 'disabled' : ''}>+</button>
+                    </div>
+                `).join('');
+            }
+
+            // 4. Отправка запроса на бэкенд
+            async function sendUpgrade(statKey) {
+                const token = localStorage.getItem('token');
+                const msgDiv = document.getElementById('upgradeMessage');
+
+                try {
+                    // Передаем параметры через Query String, как в твоем Python коде
+                    const response = await fetch(`http://127.0.0.1:8000/heroes/upgrade?stat=${statKey}&amount=1`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        addLog(`Характеристика ${statKey} улучшена!`);
+                        // Вместо перезагрузки всей страницы, просто обновляем данные
+                        await loadHeroData(); 
+                        renderUpgradeOptions(); // Обновляем кнопки в самой модалке
+                    } else {
+                        msgDiv.textContent = data.detail;
+                        msgDiv.style.display = 'block';
+                        msgDiv.style.color = '#ff5555';
+                    }
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+
     </script>
+                        
+                        <div id="modalUpgrade" class="modal">
+                        <div class="modal-content" style="width: 350px;">
+                            <span class="close" onclick="closeUpgradeModal()">&times;</span>
+                            <h2>Прокачка героя</h2>
+                            <p>Свободных очков: <b id="availablePoints" style="color: var(--accent-color);">0</b></p>
+                            
+                            <div id="upgradeList">
+                                </div>
+                            
+                            <div id="upgradeMessage" style="margin-top: 10px; font-size: 0.8rem; display: none; padding: 5px; border-radius: 4px;"></div>
+                        </div>
+                        </div>
+
 </body>
 </html>

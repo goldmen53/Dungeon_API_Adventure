@@ -202,11 +202,20 @@ class HeroRead(BaseModel):
     name: str
     hp: int
     max_hp: int
+    mp: int
+    max_mp : int
+    stat_points: int
+    xp:int
     total_strength: int
     total_dexterity: int
     total_intelligence: int
     total_agility: int
     total_vitality: int
+    strength: int
+    dexterity: int
+    intelligence: int
+    agility: int
+    vitality: int
     level: int
     gold: int
     artifacts: List[ArtifactRead] = []
