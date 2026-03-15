@@ -7,7 +7,8 @@ from fastapi.responses import FileResponse
 from app.utils import init_artifacts,init_spells,init_encounters
 from app.routers import auth, heroes, battle, world, admin
 from fastapi.middleware.cors import CORSMiddleware
-
+from fastapi.staticfiles import StaticFiles
+import os
 
 
 
@@ -24,6 +25,11 @@ app.add_middleware(
     allow_headers=["*"], # Разрешает любые заголовки (включая твой Authorization)
 )
 
+
+script_dir = os.path.dirname(__file__)
+static_path = os.path.join(script_dir, "../static") # путь к папке static
+
+app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 # Подключаем модули
 app.include_router(auth.router)

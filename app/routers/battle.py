@@ -109,7 +109,7 @@ def attack_monster(hero: Hero = Depends(get_current_hero), session: Session = De
 
 @router.post("/cast/{spell_id}")
 def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero = Depends(get_current_hero)):
-
+    monster = session.get(Monster, hero.active_monster_id) if hero.active_monster_id else None
     if not hero:
         raise HTTPException(status_code=404, detail="Герой не найден")
     
@@ -136,7 +136,7 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
         session.add(hero)
         session.commit()
         session.refresh(hero)
-        return {"message": message, "current_mp": hero.mp, "hero": hero}
+        return {"message": message, "current_mp": hero.mp, "hero": hero,"monster_hp": f"{monster.current_hp}/{monster.max_hp}" if monster else "0/0"}
     
     raise HTTPException(status_code=500, detail="У этого заклинания нет программного эффекта")
     

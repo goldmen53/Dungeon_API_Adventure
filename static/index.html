@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Crawler - RPG</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <div class="game-container">
+        
+        <header class="top-bar panel">
+            <div id="guestBlock">
+                <button id="btnLogin">Войти</button>
+                <button id="btnRegister">Регистрация</button>
+            </div>
+
+            <div id="userBlock" style="display: none; align-items: center; gap: 15px; width: 100%;">
+                <span id="playerName" style="font-weight: bold; color: var(--accent-color);">Имя игрока</span>
+                <button id="btnLogout" style="background-color: #ff5555; color: white; margin-left: auto;">Выйти</button>
+            </div>
+        </header>
+
+        <aside class="stats-panel panel">
+            <div id="statsContent">
+                <p>Загрузка данных...</p>
+            </div>
+        </aside>
+
+        <main class="map-area panel">
+    <div class="map-interface">
+        <div id="locationName" class="location-header">Загрузка...</div>
+        
+        <div id="navigationBlock">
+            <div class="fog-container">
+                <div id="visualFog" class="visual-effect">Что-то скрывается во тьме...</div>
+            </div>
+            <div id="movementControls" class="movement-grid"></div>
+        </div>
+
+        <div id="battleInterface" style="display: none;">
+            <div class="battle-arena">
+                <div class="monster-card">
+                    <h2 id="monsterName">Чудовище</h2>
+                    <div class="hp-bar-container">
+                        <div id="monsterHpBar" class="hp-bar-fill"></div>
+                    </div>
+                    <p id="monsterHpText">HP: ??/??</p>
+                </div>
+                <div class="battle-actions">
+                    <button onclick="sendAttack()" class="attack-btn">Ударить мечом</button>
+                    <div id="spellsActions" class="spells-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+        <section class="log-panel panel">
+            <div id="logContent" class="log-content">
+                <div class="log-entry">Вы стоите у входа в подземелье...</div>
+            </div>
+        </section>
+
+    </div> <div id="modalAuth" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalTitle">Вход</h2>
+            <div id="authMessage" style="margin-bottom: 15px; font-size: 0.9rem; display: none; padding: 10px; border-radius: 4px;"></div>
+            <div class="form-group">
+                <label>Имя пользователя</label>
+                <input type="text" id="authUsername" placeholder="Введите ник...">
+            </div>
+            <div class="form-group">
+                <label>Пароль</label>
+                <input type="password" id="authPassword" placeholder="Введите пароль...">
+            </div>
+            <button id="btnSubmitAuth" style="width: 100%; margin-top: 10px;">Подтвердить</button>
+        </div>
+    </div>
+
+    <div id="modalCreateHero" class="modal">
+        <div class="modal-content">
+            <h2>Создать героя</h2>
+            <div class="form-group">
+                <label>Имя героя</label>
+                <input type="text" id="newHeroName" placeholder="Как назовем легенду?">
+            </div>
+            <button id="btnConfirmCreate" style="width: 100%;">Войти в подземелье</button>
+        </div>
+    </div>
+
+    <div id="modalUpgrade" class="modal">
+        <div class="modal-content" style="width: 350px;">
+            <span class="close" onclick="document.getElementById('modalUpgrade').style.display='none'">&times;</span>
+            <h2>Прокачка героя</h2>
+            <p>Свободных очков: <b id="availablePoints" style="color: var(--accent-color);">0</b></p>
+            <div id="upgradeList"></div>
+            <div id="upgradeMessage" style="margin-top: 10px; font-size: 0.8rem; display: none; padding: 5px; border-radius: 4px;"></div>
+        </div>
+    </div>
+
+    <div id="modalLoot" class="modal">
+        <div class="modal-content">
+            <h2>Победа!</h2>
+            <div id="lootResult"></div>
+            <button onclick="closeLootModal()" style="width: 100%; margin-top: 10px;">Продолжить путь</button>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+
+<div id="modalPickLoot" class="modal">
+        <div class="modal-content">
+            <h2>Эпическая добыча!</h2>
+            <p>Выберите одну из наград:</p>
+            <div id="pendingLootContainer" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+                </div>
+        </div>
+</div>
+
+
+</body>
+</html>

@@ -225,6 +225,7 @@ class HeroRead(BaseModel):
     total_crit: int
     spells: List[SpellRead] = []
     pending_loot: List[LootChoice] = []
+    active_monster_id: Optional[int] = None
     class Config:
         from_attributes = True
 

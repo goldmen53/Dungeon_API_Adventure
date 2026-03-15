@@ -113,3 +113,120 @@ def upgrade_stat(stat: str,amount: int,hero: Hero = Depends(get_current_hero), s
         }
     }
 
+@router.post("/move")
+def move_hero(target_lane: int,hero: Hero = Depends(get_current_hero),session: Session = Depends(get_session)):
+
+    if not hero:
+        raise HTTPException(status_code=404, detail="Герой не найден")
+
+    # Сначала ПРОВЕРКА БОЯ (нельзя уйти из текущей комнаты, если там враг)
+    if hero.active_monster_id:
+        monster = session.get(Monster, hero.active_monster_id)
+        if monster and monster.current_hp > 0:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Вы не можете уйти, пока жив {monster.name}!"
+            )
+
+    # ПРОВЕРКА ДОРОЖКИ (можно только на соседние)
+    allowed_lanes = [hero.current_lane, hero.current_lane - 1, hero.current_lane + 1]
+    if target_lane not in allowed_lanes or target_lane not in [0, 1, 2]:
+         raise HTTPException(status_code=400, detail="Недопустимый переход")
+
+    #  ШАГ ВПЕРЕД (Меняем координаты ПЕРЕД генерацией типа комнаты)
+    hero.current_room += 1
+    hero.current_lane = target_lane
+    
+    # ОПРЕДЕЛЯЕМ ТИП НОВОЙ КОМНАТЫ
+    room_type = get_room_type(hero.current_room, hero.current_lane, hero.world_seed)
+
+    # ЛОГИКА СПАВНА
+    m_params = None
+    if room_type == "B" or room_type == "BOSS":
+        m_params = create_monster_params(hero.current_room, is_boss=(room_type == "BOSS"))
+        new_monster = Monster(**m_params)
+        session.add(new_monster)
+        session.flush() 
+        hero.active_monster_id = new_monster.id
+    else:
+        hero.active_monster_id = None
+
+    if room_type == "E":
+        # Получаем все ивенты из базы
+
+        
+        all_events = session.exec(select(Encounters)).all()
+
+        if not all_events:
+        # Если событий нет, просто идем дальше или даем золото
+            hero.gold += 10
+            return {"message": "Тут должно было быть событие, но мир пуст. Ты нашел 10 золотых."}
+
+        selected_event = random.choice(all_events)
+        
+        # Блокируем героя этим ивентом
+        hero.active_event_id = selected_event.id
+        session.add(hero)
+        session.commit()
+        
+        return {
+            "type": "event",
+            "event": selected_event.name,
+            "message": "Вы встретили нечто странное..."
+        }
+
+
+    #логика обовления магазина. При каждом шаге сбрасывем магазин и генерируем заново
+    hero.current_shop_items = None
+
+    session.add(hero)
+    session.commit()
+    session.refresh(hero)
+    
+    return {
+        "event": "Вы встретили врага!" if hero.active_monster_id else "Вы вошли в мирную зону",
+        "current_floor": hero.current_room,
+        "room_type": room_type,
+        "monster": m_params
+    }
+
+@router.get("/map")
+def get_hero_map(hero: Hero = Depends(get_current_hero), session: Session = Depends(get_session)):   
+    
+    visible_map = []
+    # Показываем текущий этаж 
+    if hero.current_room < 11:
+        map = 0
+    else:
+        map = (hero.current_room //10 )*10
+    #уникальный спагети код для отрисовки 0 этажа возможно потом убрать 
+    if hero.current_room < 11:
+        for f in range( map,map+11 ):
+            floor_data = {
+                "floor": f"F{f}",
+                "lanes": {
+                    "Left (0)": get_room_type(f, 0, hero.world_seed),
+                    "Center (1)": get_room_type(f, 1, hero.world_seed),
+                    "Right (2)": get_room_type(f, 2, hero.world_seed)
+                },
+                "is_current": f == hero.current_room
+            }
+            visible_map.append(floor_data)
+
+    else:
+        for f in range( map+1,map+11 ):
+            floor_data = {
+                "floor": f"F{f}",
+                "lanes": {
+                    "Left (0)": get_room_type(f, 0, hero.world_seed),
+                    "Center (1)": get_room_type(f, 1, hero.world_seed),
+                    "Right (2)": get_room_type(f, 2, hero.world_seed)
+                },
+                "is_current": f == hero.current_room
+            }
+            visible_map.append(floor_data)
+        
+    return {
+        "hero_position": {"floor": hero.current_room, "lane": hero.current_lane},
+        "map_preview": visible_map
+    }
