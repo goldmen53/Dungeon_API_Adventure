@@ -127,11 +127,11 @@ async function updateMap() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    // 1. ПРОВЕРКА КЕША: Если в герое уже сидит монстр — только бой, никакой карты!
+    // 1. ПРОВЕРКА КЕША
     if (currentHeroCache && currentHeroCache.active_monster_id) {
         console.log("Бой активен (из кеша), блокируем обновление карты.");
         showBattleMode(true);
-        return; // ПРЕРЫВАЕМ функцию здесь
+        return; 
     }
 
     try {
@@ -142,7 +142,7 @@ async function updateMap() {
         if (!res.ok) return;
         const data = await res.json();
 
-        // 2. ПРОВЕРКА ПОСЛЕ ЗАПРОСА: Если бэк внезапно сказал, что монстр есть
+        // 2. ПРОВЕРКА ПОСЛЕ ЗАПРОСА
         if (data.hero_position && data.hero_position.active_monster_id) {
             showBattleMode(true);
             return;
@@ -151,6 +151,26 @@ async function updateMap() {
         // 3. РИСУЕМ КАРТУ (только если боя точно нет)
         showBattleMode(false);
         
+        // --- МАГИЯ ОТДЫХА НАЧИНАЕТСЯ ТУТ ---
+        const restUI = document.getElementById('restInterface');
+        const movementUI = document.getElementById('movementControls');
+        
+        // Достаем тип комнаты из hero_position, который мы добавили на бэкенде
+        const currentRoomType = data.hero_position ? data.hero_position.room_type : null;
+
+        if (restUI && movementUI) {
+            if (currentRoomType === "R") {
+                // Если мы в лагере — показываем отдых, скрываем кнопки ходьбы
+                restUI.style.display = 'block';
+                movementUI.style.display = 'none';
+            } else {
+                // Если обычная комната — наоборот
+                restUI.style.display = 'none';
+                movementUI.style.display = 'block';
+            }
+        }
+        // --- МАГИЯ ОТДЫХА ЗАКАНЧИВАЕТСЯ ТУТ ---
+
         const currentFloor = data.hero_position.floor;
         const currentLane = data.hero_position.lane;
         const nextFloorNum = currentFloor + 1;
@@ -158,7 +178,6 @@ async function updateMap() {
         
         if (!nextFloorData) {
             console.log("Данные следующего этажа не найдены в превью, генерируем стандартные переходы.");
-            // Создаем заглушку, чтобы кнопки отрисовались в любом случае
             nextFloorData = { lanes: [0, 1, 2] }; 
         }
 
@@ -167,6 +186,41 @@ async function updateMap() {
         console.error("Ошибка обновления карты:", error);
     }
 }
+
+window.sendRest = async function() {
+    const token = localStorage.getItem('token');
+    try {
+        const response = await fetch('http://127.0.0.1:8000/world/rest', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            addLog(`✅ ${data.message}`);
+            // Обновляем статы (HP и Золото), чтобы игрок видел результат
+            await loadHeroData(); 
+        } else {
+            addLog(`❌ Ошибка: ${data.detail}`);
+        }
+    } catch (e) {
+        console.error("Ошибка при отдыхе:", e);
+    }
+};
+
+// Заодно сделаем то же самое для кнопки "Идти дальше"
+window.continueJourney = function() {
+    const restUI = document.getElementById('restInterface');
+    const movementUI = document.getElementById('movementControls');
+    
+    if (restUI && movementUI) {
+        restUI.style.display = 'none';
+        movementUI.style.display = 'block';
+        addLog("⛺ Вы свернули лагерь и продолжили путь.");
+    }
+};
+
 
 function renderMovementButtons(currentLane, nextLanes) {
     const controls = document.getElementById('movementControls');
@@ -335,48 +389,6 @@ function renderBattleSpells() {
     });
 }
 
-async function sendCast(spellId) {
-    const token = localStorage.getItem('token');
-    try {
-        const response = await fetch(`http://127.0.0.1:8000/battle/cast/${spellId}`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        const data = await response.json();
-
-        if (response.ok) {
-            if (data.message) addLog(data.message);
-            
-            // 1. Сначала полностью обновляем данные героя (статы, мана, активный монстр)
-            await loadHeroData(); 
-
-            // 2. Проверяем, не умер ли монстр от магии
-            // (Бэкенд в /cast должен возвращать статус боя, если он там считается)
-            // Если статус победы не приходит из /cast, проверим через кеш:
-            if (!currentHeroCache.active_monster_id) {
-                showBattleMode(false);
-                // Показываем обычное окно лута (золото/опыт)
-                showLootModal(data.message || "Победа магией!");
-                return; 
-            }
-
-            // 3. Если бой продолжается — обновляем интерфейс монстра
-            const m = currentHeroCache.active_monster;
-            if (m) {
-                const c_hp = m.current_hp !== undefined ? m.current_hp : m.hp;
-                updateMonsterUI(`${c_hp}/${m.max_hp}`);
-            }
-            
-            renderBattleSpells(); // Перерисовываем кнопки (проверка маны)
-            
-        } else {
-            addLog(`Ошибка: ${data.detail}`);
-        }
-    } catch (e) { 
-        console.error("Ошибка при касте:", e); 
-    }
-}
 
 async function sendCast(spellId) {
     const token = localStorage.getItem('token');
@@ -662,7 +674,11 @@ async function sendPickLoot(choiceType, choiceId) {
     }
 }
 
-
+window.continueJourney = function() {
+    document.getElementById('restInterface').style.display = 'none';
+    document.getElementById('movementControls').style.display = 'block';
+    addLog("Вы покинули уютный лагерь и отправились дальше.");
+};
 
 // Старт
 updateUI();

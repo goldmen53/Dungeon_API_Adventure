@@ -227,6 +227,11 @@ def get_hero_map(hero: Hero = Depends(get_current_hero), session: Session = Depe
             visible_map.append(floor_data)
         
     return {
-        "hero_position": {"floor": hero.current_room, "lane": hero.current_lane},
-        "map_preview": visible_map
-    }
+    "hero_position": {
+        "floor": hero.current_room, 
+        "lane": hero.current_lane,
+        "room_type": get_room_type(hero.current_room, hero.current_lane, hero.world_seed),
+        "is_rest_zone": get_room_type(hero.current_room, hero.current_lane, hero.world_seed) == "R"
+    },
+    "map_preview": visible_map
+}

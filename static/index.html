@@ -29,6 +29,7 @@
         </aside>
 
         <main class="map-area panel">
+    
     <div class="map-interface">
         <div id="locationName" class="location-header">Загрузка...</div>
         
@@ -55,13 +56,35 @@
             </div>
         </div>
     </div>
+
+    <div id="restInterface" style="display: none; background: #1e2a1e; padding: 15px; border: 1px solid #4caf50; border-radius: 5px; text-align: center; margin: 10px 0;">
+        <h3 style="color: #4caf50;">🏕️ Безопасное место</h3>
+        <p>Вы можете отдохнуть или продолжить путь.</p>
+        
+        <div style="display: flex; justify-content: center; gap: 10px;">
+            <button onclick="sendRest()" style="background: #4caf50; color: white; padding: 10px; cursor: pointer; border: none; border-radius: 4px;">
+                Отдохнуть (1 🪙)
+            </button>
+            
+            <button onclick="continueJourney()" style="background: #555; color: white; padding: 10px; cursor: pointer; border: none; border-radius: 4px;">
+                Идти дальше
+            </button>
+        </div>
+    </div>
+
+
 </main>
 
+
+
         <section class="log-panel panel">
+            
             <div id="logContent" class="log-content">
                 <div class="log-entry">Вы стоите у входа в подземелье...</div>
             </div>
         </section>
+
+        
 
     </div> <div id="modalAuth" class="modal">
         <div class="modal-content">
@@ -109,7 +132,7 @@
         </div>
     </div>
 
-    <script src="game.js"></script>
+    <script src="static/game.js"></script>
 
 <div id="modalPickLoot" class="modal">
         <div class="modal-content">
@@ -119,6 +142,8 @@
                 </div>
         </div>
 </div>
+
+
 
 
 </body>
