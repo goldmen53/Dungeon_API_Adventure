@@ -5,7 +5,7 @@ from app.database import init_db, get_session
 import random
 
 
-def encaunter_give_any_stat(hero, session: Session, stat: str):
+def encounter_give_any_stat(hero, session: Session, stat: str):
     
     hero = session.exec(select(Hero).where(Hero.name == hero.name)).first()
     if not hero:
@@ -45,10 +45,10 @@ def effect_altar_sacrifice(hero, session, choice):
         hero.hp -= 30
 
         hero.strength += 2
-        if hero.streenght > 50:
+        if hero.strength > 50:
             hero.hero.strength = 50
         msg = "Алтарь выпил вашу кровь, но наполнил мышцы сталью."
-    else:
+    if choice == 'pray' :
         hero.mp = min(hero.max_mp, hero.mp + 10)
         msg = "Вы тихо помолились и почувствовали покой."
     
@@ -70,7 +70,7 @@ def effect_goblin_gamble(hero, session, choice):
         else:
             hero.gold = max(0, hero.gold - bet)
             msg = "Не повезло! Гоблин ловко срезал ваш кошелек и убежал."
-    else:
+    if choice == 'go_away':
         msg = "Вы прошли мимо. Азарт — это путь к нищете."
     
     hero.active_event_id = None
@@ -104,7 +104,7 @@ def effect_ancient_library(hero, session, choice):
 
 # Реестр: связываем строку из БД с функцией
 ENCAUNTERS_EFFECTS = {
-    "give_any_stat": encaunter_give_any_stat,
+    "give_any_stat": encounter_give_any_stat,
     "altar_event": effect_altar_sacrifice,
     "goblin_event": effect_goblin_gamble,
     "library_event": effect_ancient_library

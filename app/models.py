@@ -229,12 +229,32 @@ class HeroRead(BaseModel):
     class Config:
         from_attributes = True
 
-class Encounters (SQLModel, table=True):
+from typing import Optional
+from sqlmodel import SQLModel, Field
+
+class Encounters(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     description: str
     effect_key: str
     rarity: str = Field(default='base') 
+
+    # --- Вариант 1 (ОБЯЗАТЕЛЬНЫЙ) ---
+    choice_1_text: str  # Текст на кнопке (например, "Молиться о силе")
+    choice_1_val: str   # Значение для бэкенда (например, "str")
+
+    # --- ОПЦИОНАЛЬНЫЕ ВАРИАНТЫ ---
+    choice_2_text: Optional[str] = Field(default=None)
+    choice_2_val: Optional[str] = Field(default=None)
+
+    choice_3_text: Optional[str] = Field(default=None)
+    choice_3_val: Optional[str] = Field(default=None)
+
+    choice_4_text: Optional[str] = Field(default=None)
+    choice_4_val: Optional[str] = Field(default=None)
+
+    choice_5_text: Optional[str] = Field(default=None)
+    choice_5_val: Optional[str] = Field(default=None)
 
 
 class Spell(SQLModel, table=True):

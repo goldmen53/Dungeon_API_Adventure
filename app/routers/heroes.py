@@ -152,27 +152,38 @@ def move_hero(target_lane: int,hero: Hero = Depends(get_current_hero),session: S
         hero.active_monster_id = None
 
     if room_type == "E":
-        # Получаем все ивенты из базы
-
-        
         all_events = session.exec(select(Encounters)).all()
-
         if not all_events:
-        # Если событий нет, просто идем дальше или даем золото
             hero.gold += 10
             return {"message": "Тут должно было быть событие, но мир пуст. Ты нашел 10 золотых."}
 
         selected_event = random.choice(all_events)
         
-        # Блокируем героя этим ивентом
+        # Блокируем героя
         hero.active_event_id = selected_event.id
         session.add(hero)
         session.commit()
         
+        # --- ФОРМИРУЕМ МАССИВ КНОПОК ДЛЯ ФРОНТЕНДА ---
+        choices = []
+        # Вариант 1 всегда есть
+        choices.append({"text": selected_event.choice_1_text, "value": selected_event.choice_1_val})
+        
+        # Проверяем опциональные
+        if selected_event.choice_2_text and selected_event.choice_2_val:
+            choices.append({"text": selected_event.choice_2_text, "value": selected_event.choice_2_val})
+        if selected_event.choice_3_text and selected_event.choice_3_val:
+            choices.append({"text": selected_event.choice_3_text, "value": selected_event.choice_3_val})
+        if selected_event.choice_4_text and selected_event.choice_4_val:
+            choices.append({"text": selected_event.choice_4_text, "value": selected_event.choice_4_val})
+        if selected_event.choice_5_text and selected_event.choice_5_val:
+            choices.append({"text": selected_event.choice_5_text, "value": selected_event.choice_5_val})
+
         return {
             "type": "event",
-            "event": selected_event.name,
-            "message": "Вы встретили нечто странное..."
+            "event_name": selected_event.name,
+            "description": selected_event.description,
+            "choices": choices  # Отдаем готовый массив вариантов!
         }
 
 

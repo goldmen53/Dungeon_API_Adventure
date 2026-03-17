@@ -97,7 +97,7 @@ def get_shop_catalog(hero: Hero = Depends(get_current_hero),session: Session = D
 
 
 @router.post("/resolve_event")
-def resolve_event( choice: str,hero: Hero = Depends(get_current_hero), session: Session = Depends(get_session)):
+def resolve_event(choice: str, hero: Hero = Depends(get_current_hero), session: Session = Depends(get_session)):
     if not hero:
         raise HTTPException(status_code=404, detail="Герой не найден")
     
@@ -106,14 +106,22 @@ def resolve_event( choice: str,hero: Hero = Depends(get_current_hero), session: 
 
     event = session.get(Encounters, hero.active_event_id)
     
-    # Вызываем эффект из реестра
+    # 1. ЗАЩИТА ОТ ЧИТЕРОВ: Проверяем, что присланный choice реально есть в этом ивенте
+    valid_choices = [
+        event.choice_1_val, event.choice_2_val, event.choice_3_val, 
+        event.choice_4_val, event.choice_5_val
+    ]
+    if choice not in valid_choices:
+         raise HTTPException(status_code=400, detail="Недопустимый выбор для этого события")
+
+    # 2. Вызываем эффект
     handler = ENCAUNTERS_EFFECTS.get(event.effect_key)
     if handler:
         message = handler(hero, session, choice)
         session.commit()
         return {"message": message, "hero": hero}
     
-    raise HTTPException(status_code=500, detail="Ошибка обработки ивента")
+    raise HTTPException(status_code=500, detail="Ошибка обработки ивента: обработчик не найден")
 
 @router.post("/buy")
 def buy_artifact( artifact_id: int, hero: Hero = Depends(get_current_hero), session: Session = Depends(get_session)):
@@ -228,3 +236,31 @@ def pick_loot(
         "current_artifacts": [a.name for a in hero.artifacts],
         "current_spells": [s.name for s in hero.spells]
     }   
+
+
+@router.get("/current_event")
+def get_current_event(hero: Hero = Depends(get_current_hero), session: Session = Depends(get_session)):
+    if not hero.active_event_id:
+        raise HTTPException(status_code=400, detail="У вас нет активных событий")
+        
+    event = session.get(Encounters, hero.active_event_id)
+    if not event:
+        raise HTTPException(status_code=404, detail="Событие не найдено")
+
+    # Собираем массив кнопок налету
+    choices = [{"text": event.choice_1_text, "value": event.choice_1_val}]
+    
+    if event.choice_2_text and event.choice_2_val:
+        choices.append({"text": event.choice_2_text, "value": event.choice_2_val})
+    if event.choice_3_text and event.choice_3_val:
+        choices.append({"text": event.choice_3_text, "value": event.choice_3_val})
+    if event.choice_4_text and event.choice_4_val:
+        choices.append({"text": event.choice_4_text, "value": event.choice_4_val})
+    if event.choice_5_text and event.choice_5_val:
+        choices.append({"text": event.choice_5_text, "value": event.choice_5_val})
+
+    return {
+        "name": event.name,
+        "description": event.description,
+        "choices": choices
+    }

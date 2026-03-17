@@ -18,7 +18,7 @@ from fastapi import Header, HTTPException
 SECRET_KEY = "SUPER_SECRET_KEY_DONT_TELL_ANYONE" # Позже вынеси в .env
 ADMIN_SECRET_TOKEN = "1"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # Токен живет 24 часа
+ACCESS_TOKEN_EXPIRE_MINUTES = 43200 # Токен живет 24 часа
 
 # 2. Контекст для хеширования паролей
 pwd_context = CryptContext(

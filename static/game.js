@@ -148,8 +148,9 @@ async function updateMap() {
         showBattleMode(false);
         
         const restUI = document.getElementById('restInterface');
-        const shopUI = document.getElementById('shopInterface'); // НОВОЕ
+        const shopUI = document.getElementById('shopInterface');
         const movementUI = document.getElementById('movementControls');
+        const eventUI = document.getElementById('eventInterface');
         
         const currentRoomType = data.hero_position ? data.hero_position.room_type : null;
 
@@ -157,6 +158,7 @@ async function updateMap() {
         if (restUI) restUI.style.display = 'none';
         if (shopUI) shopUI.style.display = 'none';
         if (movementUI) movementUI.style.display = 'block';
+        if (eventUI) eventUI.style.display = 'none';
 
         if (currentRoomType === "R") {
             if (restUI) restUI.style.display = 'block';
@@ -166,7 +168,14 @@ async function updateMap() {
             // МЫ В МАГАЗИНЕ
             if (shopUI) shopUI.style.display = 'block';
             if (movementUI) movementUI.style.display = 'none';
-            loadShopCatalog(); // Загружаем товары с бэкенда
+            loadShopCatalog(); // Загружаем товары с бэкенда  
+        }
+
+        else if (currentRoomType === "E") {
+            // МЫ В СОБЫТИИ
+            if (eventUI) eventUI.style.display = 'block';
+            if (movementUI) movementUI.style.display = 'none';
+            loadCurrentEvent(); // Запрашиваем текст и кнопки с сервера
         }
 
         const currentFloor = data.hero_position.floor;
@@ -732,6 +741,65 @@ window.continueJourney = function() {
     document.getElementById('movementControls').style.display = 'block';
     addLog("Вы покинули уютный лагерь и отправились дальше.");
 };
+
+// Запрашивает данные события и генерирует кнопки
+window.loadCurrentEvent = async function() {
+    const token = localStorage.getItem('token');
+    try {
+        const response = await fetch('http://127.0.0.1:8000/world/current_event', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) return;
+        
+        const data = await response.json();
+
+        // Заполняем тексты
+        document.getElementById('eventName').textContent = data.name;
+        document.getElementById('eventDescription').textContent = data.description;
+        
+        // Очищаем старые кнопки
+        const container = document.getElementById('eventChoicesContainer');
+        container.innerHTML = '';
+        
+        // Создаем новые кнопки из массива
+        data.choices.forEach(choice => {
+            const btn = document.createElement('button');
+            btn.textContent = choice.text;
+            btn.style = "background: #9c27b0; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 80%; max-width: 300px; font-weight: bold;";
+            
+            // При клике отправляем value на сервер
+            btn.onclick = () => resolveEvent(choice.value); 
+            container.appendChild(btn);
+        });
+
+    } catch (e) { console.error("Ошибка загрузки события:", e); }
+};
+
+// Отправляет решение на сервер
+window.resolveEvent = async function(choiceValue) {
+    const token = localStorage.getItem('token');
+    try {
+        const response = await fetch(`http://127.0.0.1:8000/world/resolve_event?choice=${choiceValue}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            addLog(`✨ ${data.message}`);
+            await loadHeroData(); // Обновляем статы (например, если дали +Силу)
+            
+            // Событие пройдено, возвращаем кнопки движения
+            document.getElementById('eventInterface').style.display = 'none';
+            document.getElementById('movementControls').style.display = 'block';
+        } else {
+            addLog(`❌ Ошибка: ${data.detail}`);
+        }
+    } catch (e) { console.error("Ошибка при выборе:", e); }
+};
+
 
 // Старт
 updateUI();
