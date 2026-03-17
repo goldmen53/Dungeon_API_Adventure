@@ -99,24 +99,72 @@ function renderStats(hero) {
         <div class="stat-line"><span>Уровень:</span> <span>${hero.level}</span></div>
         <div class="stat-line"><span>XP:</span> <span>${hero.xp}/100</span></div>
         <div class="stat-line"><span>HP:</span> <span style="color: #ff5555;">${hero.hp}/${hero.max_hp}</span></div>
-        <div class="stat-line"><span>MP:</span> <span style="color: #3434eb;">${hero.mp}/${hero.max_mp}</span></div>
-        <div class="stat-line"><span>Золото:</span> <span style="color: #ffd700;">${hero.gold}</span></div>
-        <div class="stat-line"><span>Очки статов:</span> 
-            <span>${hero.stat_points} 
-            ${hero.stat_points > 0 ? '<button onclick="openUpgradeModal()" class="small-btn">+</button>' : ''}
-            </span>
-        </div>
-        <div style="margin-top:10px; border-top: 1px solid #444; padding-top:10px;">
-            <div class="stat-line"><span>Сила:</span> <span>${hero.total_strength}</span></div>
-            <div class="stat-line"><span>Ловкость:</span> <span>${hero.total_agility}</span></div>
-            <div class="stat-line"><span>Интеллект:</span> <span>${hero.total_intelligence}</span></div>
-        </div>
-        <div style="margin-top:10px;">
-            <div style="font-size: 0.8rem; color: #aaa;">Артефакты:</div>
-            <div class="items-container">${artifactsHtml}</div>
-            <div style="font-size: 0.8rem; color: #aaa; margin-top:5px;">Заклинания:</div>
-            <div class="items-container">${spellsHtml}</div>
-        </div>
+        <div class="stat-line"><span>SP:</span> <span style="color: #3434eb;">${hero.mp}/${hero.max_mp}</span></div>
+                        <div class="stat-line"><span>Gold:</span> <span style="color: #ffd700;">${hero.gold}</span></div>
+
+                        <div class="stat-line">
+                        <span>Stat Points:</span> 
+                        <span>
+                            ${hero.stat_points} 
+                            ${hero.stat_points > 0 ? '<button onclick="openUpgradeModal()" style="padding: 2px 5px; margin-left:5px;">+</button>' : ''}
+                        </span>
+                        </div>
+        <div style="margin-top:10px; border-top: 1px solid #444; padding-top:20px;">
+                            <div class="stat-line">
+                                <span>Strength:</span> 
+                                <div>
+                                    <span>${hero.total_strength}</span>
+                                    <span style="color: #4caf50;">+${hero.total_strength - hero.strength}</span>
+                                </div>
+                            </div>
+                            <div class="stat-line">
+                                <span>Dexterity:</span> 
+                                <div>
+                                    <span>${hero.total_dexterity}</span>
+                                    <span style="color: #4caf50;">+${hero.total_dexterity - hero.dexterity}</span>
+                                </div>
+                            </div>
+                            <div class="stat-line">
+                                <span>Agility:</span> 
+                                <div>
+                                    <span>${hero.total_agility}</span>
+                                    <span style="color: #4caf50;">+${hero.total_agility - hero.agility}</span>
+                                </div>
+                            </div>
+                            <div class="stat-line">
+                                <span>Intelligence:</span> 
+                                <div>
+                                    <span>${hero.total_intelligence}</span>
+                                    <span style="color: #4caf50;">+${hero.total_intelligence - hero.intelligence}</span>
+                                </div>
+                            </div>
+                            <div class="stat-line">
+                                <span>Vitality:</span> 
+                                <div>
+                                    <span>${hero.total_vitality}</span>
+                                    <span style="color: #4caf50;">+${hero.total_vitality - hero.vitality}</span>
+                                </div>
+                            </div>
+                            <div class="stat-line">
+                                <span>Flee:</span> 
+                                <span>${hero.total_flee}</span>
+                            </div>
+                            <div class="stat-line">
+                                <span>Crit:</span> 
+                                <span>${hero.total_crit}%</span>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:10px; border-top: 1px solid #444; padding-top:25px;">
+                                <div style="margin-top:10px;">
+                                <div style="font-size: 0.8rem; color: var(--accent-color); margin-bottom: 5px;">Артефакты:</div>
+                                <div class="items-container">${artifactsHtml}</div>
+                            </div>
+
+                            <div style="margin-top:10px;">
+                                <div style="font-size: 0.8rem; color: var(--accent-color); margin-bottom: 5px;">Заклинания:</div>
+                                <div class="items-container">${spellsHtml}</div>
+                            </div>
     `;
 }
 
