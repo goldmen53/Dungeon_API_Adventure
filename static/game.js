@@ -127,9 +127,7 @@ async function updateMap() {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    // 1. ПРОВЕРКА КЕША
     if (currentHeroCache && currentHeroCache.active_monster_id) {
-        console.log("Бой активен (из кеша), блокируем обновление карты.");
         showBattleMode(true);
         return; 
     }
@@ -142,34 +140,34 @@ async function updateMap() {
         if (!res.ok) return;
         const data = await res.json();
 
-        // 2. ПРОВЕРКА ПОСЛЕ ЗАПРОСА
         if (data.hero_position && data.hero_position.active_monster_id) {
             showBattleMode(true);
             return;
         }
 
-        // 3. РИСУЕМ КАРТУ (только если боя точно нет)
         showBattleMode(false);
         
-        // --- МАГИЯ ОТДЫХА НАЧИНАЕТСЯ ТУТ ---
         const restUI = document.getElementById('restInterface');
+        const shopUI = document.getElementById('shopInterface'); // НОВОЕ
         const movementUI = document.getElementById('movementControls');
         
-        // Достаем тип комнаты из hero_position, который мы добавили на бэкенде
         const currentRoomType = data.hero_position ? data.hero_position.room_type : null;
 
-        if (restUI && movementUI) {
-            if (currentRoomType === "R") {
-                // Если мы в лагере — показываем отдых, скрываем кнопки ходьбы
-                restUI.style.display = 'block';
-                movementUI.style.display = 'none';
-            } else {
-                // Если обычная комната — наоборот
-                restUI.style.display = 'none';
-                movementUI.style.display = 'block';
-            }
+        // Скрываем всё по умолчанию
+        if (restUI) restUI.style.display = 'none';
+        if (shopUI) shopUI.style.display = 'none';
+        if (movementUI) movementUI.style.display = 'block';
+
+        if (currentRoomType === "R") {
+            if (restUI) restUI.style.display = 'block';
+            if (movementUI) movementUI.style.display = 'none';
+        } 
+        else if (currentRoomType === "S") {
+            // МЫ В МАГАЗИНЕ
+            if (shopUI) shopUI.style.display = 'block';
+            if (movementUI) movementUI.style.display = 'none';
+            loadShopCatalog(); // Загружаем товары с бэкенда
         }
-        // --- МАГИЯ ОТДЫХА ЗАКАНЧИВАЕТСЯ ТУТ ---
 
         const currentFloor = data.hero_position.floor;
         const currentLane = data.hero_position.lane;
@@ -177,7 +175,6 @@ async function updateMap() {
         let nextFloorData = data.map_preview.find(f => f.floor === `F${nextFloorNum}` || f.floor === nextFloorNum);
         
         if (!nextFloorData) {
-            console.log("Данные следующего этажа не найдены в превью, генерируем стандартные переходы.");
             nextFloorData = { lanes: [0, 1, 2] }; 
         }
 
@@ -219,6 +216,61 @@ window.continueJourney = function() {
         movementUI.style.display = 'block';
         addLog("⛺ Вы свернули лагерь и продолжили путь.");
     }
+};
+
+window.loadShopCatalog = async function() {
+    const token = localStorage.getItem('token');
+    const container = document.getElementById('shopItemsContainer');
+    try {
+        const response = await fetch('http://127.0.0.1:8000/world/shop', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        document.getElementById('shopHeroGold').textContent = data.hero_gold;
+        container.innerHTML = '';
+
+        if (data.items_for_sale.length === 0) {
+            container.innerHTML = "<p>Товары закончились.</p>";
+            return;
+        }
+
+        data.items_for_sale.forEach(item => {
+            const itemDiv = document.createElement('div');
+            itemDiv.style = "border: 1px solid #777; padding: 10px; border-radius: 5px; width: 120px; text-align: center; background: #3a3a4a;";
+            itemDiv.innerHTML = `
+                <div style="font-weight: bold;">${item.name}</div>
+                <div style="color: #ffd700;">${item.cost} 🪙</div>
+                <button onclick="buyItem(${item.id})" style="margin-top: 5px; cursor: pointer;">Купить</button>
+            `;
+            container.appendChild(itemDiv);
+        });
+    } catch (e) { console.error("Ошибка загрузки магазина:", e); }
+};
+
+window.buyItem = async function(itemId) {
+    const token = localStorage.getItem('token');
+    try {
+        const response = await fetch(`http://127.0.0.1:8000/world/buy?artifact_id=${itemId}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+            addLog(`💰 ${data.message}`);
+            await loadHeroData();     // Обновляем статы (золото)
+            await loadShopCatalog();  // Перерисовываем товары (чтобы купленный исчез)
+        } else {
+            addLog(`❌ Ошибка магазина: ${data.detail}`);
+        }
+    } catch (e) { console.error("Ошибка покупки:", e); }
+};
+
+window.continueJourneyFromShop = function() {
+    document.getElementById('shopInterface').style.display = 'none';
+    document.getElementById('movementControls').style.display = 'block';
+    addLog("Вы попрощались с торговцем и пошли дальше.");
 };
 
 
@@ -263,7 +315,8 @@ async function moveHero(targetLane) {
             }
             
             addLog(`Вы вошли в комнату. ${data.event || ""}`);
-            await loadHeroData(); // Это обновит currentHeroCache и включит бой
+            await loadHeroData();
+            await updateMap(); 
         } else {
             
             if (response.status === 400) {
