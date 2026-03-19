@@ -82,6 +82,8 @@
             flex-direction: column;
             align-items: center;
             width: 100%;
+            position: relative; /* ВАЖНО: чтобы абсолютные окна не улетали */
+            min-height: 400px;  /* Высота, которую будут занимать окна ивентов */
         }
 
         .location-header {
@@ -100,14 +102,13 @@
         }
 
         .movement-grid {
-            display: grid !important; 
-            grid-template-columns: 1fr 1fr 1fr; /* Три равные колонки */
-            grid-template-rows: 100%;          /* Одна строка на всю доступную высоту */
-            gap: 15px;
-            width: 100%;
-            height: 100%;          /* Занимает ровно 100% от высоты .map-area */
-            box-sizing: border-box;
-        }
+                display: grid !important; 
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 15px;
+                width: 100%;
+                height: 100%;
+                z-index: 1; /* Ниже ивентов */
+            }
 
         .move-btn {
             width: 100%;
@@ -374,4 +375,37 @@
 .spell-cost {
     font-size: 0.7rem;
     opacity: 0.8;
+}
+
+.event-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    background-color: var(--panel-bg);
+    box-sizing: border-box; /* Чтобы padding не увеличивал ширину */
+    display: none; /* По умолчанию скрыто, JS включит */
+
+    padding: 30px; /* Большой отступ от краев панели */
+    display: none;
+    
+    /* Центрируем содержимое внутри окна ивента */
+    flex-direction: column;
+    justify-content: center; 
+    align-items: center;
+    overflow-y: auto; /* Если контента много, будет скролл только внутри окна */
+}
+
+
+#battleInterface, #restInterface, #shopInterface, #eventInterface {
+    /* Эти ID теперь будут вести себя как оверлеи при появлении */
+    display: none; 
+}
+
+.map-area.panel {
+    position: relative; /* Окна будут позиционироваться относительно этой панели */
+    padding: 10;        /* Убираем внутренний отступ, чтобы окно прилегало к краям */
+    overflow: hidden;  /* Чтобы ничего не вылетало за границы */
 }

@@ -125,18 +125,58 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
     if hero.mp < spell.mp_cost:
         raise HTTPException(status_code=400, detail="Недостаточно маны!")
     
+    log=[]
+
     handler = SPELLS_EFFECTS.get(spell.effect_key)
     if handler:
         # Тратим ману перед кастом
         hero.mp -= spell.mp_cost
         
         # Передаем сессию, героя и, возможно, монстра (если идет бой)
-        message = handler(hero, session) 
-        
+        log = [handler(hero, session)] 
+
+    # Проверка смерти монстра
+    if monster.current_hp <= 0:
+        reward_message = give_monster_rewards(hero, monster,session)
+        # Удаляем монстра из базы, чтобы не засорять мир трупами
+        log.append(f"{monster.name} убит! Вы получили {reward_message}")
+        session.add(monster)
         session.add(hero)
+        session.delete(monster)
         session.commit()
         session.refresh(hero)
-        return {"message": message, "current_mp": hero.mp, "hero": hero,"monster_hp": f"{monster.current_hp}/{monster.max_hp}" if monster else "0/0"}
+        
+        
+        
+
+        return {"status": "victory",
+                "log": log, 
+                "hero": hero,
+                }
+
+    if hero.hp <= 0:
+        hero.hp = 0
+        # Здесь потом будет логика смерти (телепортация в город или удаление)
+        # 
+        # ------НЕ ЗАБЫВАЕМ ДОБАВИТЬ ЛОГИКУ СМЕРТИ------
+        #
+        #
+        log.append("Вы погибли!")
+        status = "defeat"
+    else:
+        status = "ongoing"
+        
+        session.add(hero)
+        session.add(monster)
+        session.commit()
+        session.refresh(hero)
+
+        return {
+        "status": status,
+        "log": log,
+        "hero_hp": f"{hero.hp}/{hero.max_hp}",
+        "monster_hp": f"{monster.current_hp}/{monster.max_hp}"
+    }
     
     raise HTTPException(status_code=500, detail="У этого заклинания нет программного эффекта")
     

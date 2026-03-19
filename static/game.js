@@ -205,23 +205,23 @@ async function updateMap() {
         // Скрываем всё по умолчанию
         if (restUI) restUI.style.display = 'none';
         if (shopUI) shopUI.style.display = 'none';
-        if (movementUI) movementUI.style.display = 'block';
+        if (movementUI) movementUI.style.display = 'flex';
         if (eventUI) eventUI.style.display = 'none';
 
         if (currentRoomType === "R") {
-            if (restUI) restUI.style.display = 'block';
+            if (restUI) restUI.style.display = 'flex';
             if (movementUI) movementUI.style.display = 'none';
         } 
         else if (currentRoomType === "S") {
             // МЫ В МАГАЗИНЕ
-            if (shopUI) shopUI.style.display = 'block';
+            if (shopUI) shopUI.style.display = 'flex';
             if (movementUI) movementUI.style.display = 'none';
             loadShopCatalog(); // Загружаем товары с бэкенда  
         }
 
         else if (currentRoomType === "E") {
             // МЫ В СОБЫТИИ
-            if (eventUI) eventUI.style.display = 'block';
+            if (eventUI) eventUI.style.display = 'flex';
             if (movementUI) movementUI.style.display = 'none';
             loadCurrentEvent(); // Запрашиваем текст и кнопки с сервера
         }
@@ -294,11 +294,11 @@ window.loadShopCatalog = async function() {
 
         data.items_for_sale.forEach(item => {
             const itemDiv = document.createElement('div');
-            itemDiv.style = "border: 1px solid #777; padding: 10px; border-radius: 5px; width: 120px; text-align: center; background: #3a3a4a;";
+            itemDiv.style = "border:  1px solid #777;  padding: 10px; border-radius: 5px; width: 200px; height: 80px; text-align: center; ";
             itemDiv.innerHTML = `
-                <div style="font-weight: bold;">${item.name}</div>
-                <div style="color: #ffd700;">${item.cost} 🪙</div>
-                <button onclick="buyItem(${item.id})" style="margin-top: 5px; cursor: pointer;">Купить</button>
+                <div style="font-weight: bold; margin-top: 10px;">${item.name}</div>
+                <div style="color: #ffd700;">${item.cost} 🪙 </div>
+                <button onclick="buyItem(${item.id})" style="margin-top: 5px; flex-end; cursor: pointer;">Купить</button>
             `;
             container.appendChild(itemDiv);
         });
@@ -408,35 +408,7 @@ function showBattleMode(isBattle) {
     }
 }
 
-async function sendAttack() {
-    const token = localStorage.getItem('token');
-    try {
-        const response = await fetch('http://127.0.0.1:8000/battle/attack', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await response.json();
-        if (data.log) data.log.forEach(msg => addLog(msg));
 
-        if (data.status === "victory") {
-            // ВАЖНО: Сбрасываем интерфейс старого монстра!
-            updateMonsterUI("0/1"); // Обнулит полоску
-            document.getElementById('monsterName').textContent = "Враг"; 
-            document.getElementById('monsterHpText').textContent = "HP: ??/??";
-
-            showBattleMode(false); 
-            showLootModal(data.log ? data.log[data.log.length-1] : "Победа!");
-            await loadHeroData();
-
-        } else if (data.status === "defeat") {
-            alert("Вы погибли!");
-            location.reload();
-        } else {
-            updateMonsterUI(data.monster_hp);
-            await loadHeroData();
-        }
-    } catch (e) { console.error("Ошибка атаки:", e); }
-}
 
 function updateMonsterUI(hpData) {
     if (hpData === undefined || hpData === null) return;
@@ -499,6 +471,35 @@ function renderBattleSpells() {
     });
 }
 
+async function sendAttack() {
+    const token = localStorage.getItem('token');
+    try {
+        const response = await fetch('http://127.0.0.1:8000/battle/attack', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.log) data.log.forEach(msg => addLog(msg));
+
+        if (data.status === "victory") {
+            // ВАЖНО: Сбрасываем интерфейс старого монстра!
+            updateMonsterUI("0/1"); // Обнулит полоску
+            document.getElementById('monsterName').textContent = "Враг"; 
+            document.getElementById('monsterHpText').textContent = "HP: ??/??";
+
+            showBattleMode(false); 
+            showLootModal(data.log ? data.log[data.log.length-1] : "Победа!");
+            await loadHeroData();
+
+        } else if (data.status === "defeat") {
+            alert("Вы погибли!");
+            location.reload();
+        } else {
+            updateMonsterUI(data.monster_hp);
+            await loadHeroData();
+        }
+    } catch (e) { console.error("Ошибка атаки:", e); }
+}
 
 async function sendCast(spellId) {
     const token = localStorage.getItem('token');
@@ -509,7 +510,7 @@ async function sendCast(spellId) {
         });
         
         const data = await response.json();
-
+        if (data.log) data.log.forEach(msg => addLog(msg));
         if (response.ok) {
 
             if (data.hero) {
@@ -556,7 +557,7 @@ async function sendCast(spellId) {
             if (!currentHeroCache.active_monster_id) {
                 updateMonsterUI("0/100"); // Визуально обнуляем полоску
                 showBattleMode(false);
-                showLootModal(data.message || "Монстр повержен магией!");
+                showLootModal(data.log ? data.log[data.log.length-1] : "Удар магией добил монстра!");
             }
 
             renderBattleSpells(); // Обновляем кнопки спеллов (доступность по мане)
