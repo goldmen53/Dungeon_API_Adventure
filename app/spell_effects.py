@@ -19,14 +19,7 @@ def cast_fire_damage(hero ,session):
     damage = 10 + (hero.total_intelligence * 1.5)
     monster.current_hp -= int(damage)
     
-    # Проверяем смерть монстра
-    if monster.current_hp <= 0:
-        reward_message = give_monster_rewards(hero, monster ,session)
-        hero.active_monster_id = None
-        session.delete(monster)
-
-
-        return f"Огненный шар испепелил {monster.name}! Вы победили! {reward_message}"
+    
     
     return f"Огненный шар наносит {int(damage)} урона монстру {monster.name}!"
 

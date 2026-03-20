@@ -6,6 +6,8 @@ __pycache__/
 .env
 .vscode/
 .idea/
+.clinerules
 
 # Базы данных (если вдруг создашь локальный файл sqlite)
 *.db
+.gitignore

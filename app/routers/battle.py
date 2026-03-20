@@ -139,21 +139,24 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
     if monster.current_hp <= 0:
         reward_message = give_monster_rewards(hero, monster,session)
         # Удаляем монстра из базы, чтобы не засорять мир трупами
-        log.append(f"{monster.name} убит! Вы получили {reward_message}")
+        session.delete(monster)
         session.add(monster)
         session.add(hero)
-        session.delete(monster)
         session.commit()
-        session.refresh(hero)
         
-        
-        
+        log.append(f"{monster.name} убит заклинанием! Вы получили {reward_message}")
+        return {"status": "victory", "log": log, "hero": hero}
+    
+    # монстр атакует в ответ
 
-        return {"status": "victory",
-                "log": log, 
-                "hero": hero,
-                }
+    if random.random() > hero.total_flee/100 : # проверка на уворот 1 очко уворота = 1% 
+        monster_damage = random.randint(monster.min_attack, monster.max_attack)
+        hero.hp -= monster_damage
+        log.append(f"{monster.name} атакует вас на {monster_damage} урона.")
+    else:
+        log.append(f"{monster.name} промахнулся и не нанес урон")
 
+    # Проверка смерти героя
     if hero.hp <= 0:
         hero.hp = 0
         # Здесь потом будет логика смерти (телепортация в город или удаление)
@@ -165,11 +168,15 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
         status = "defeat"
     else:
         status = "ongoing"
-        
-        session.add(hero)
+
+
         session.add(monster)
+        session.add(hero)
         session.commit()
         session.refresh(hero)
+        
+        
+        
 
         return {
         "status": status,
@@ -177,6 +184,6 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
         "hero_hp": f"{hero.hp}/{hero.max_hp}",
         "monster_hp": f"{monster.current_hp}/{monster.max_hp}"
     }
-    
+
     raise HTTPException(status_code=500, detail="У этого заклинания нет программного эффекта")
     
