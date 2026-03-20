@@ -58,10 +58,6 @@ def hero_rest(hero: Hero = Depends(get_current_hero), session: Session = Depends
         "gold_left": hero.gold
     }
 
-
-
-
-
 @router.get("/shop")
 def get_shop_catalog(hero: Hero = Depends(get_current_hero),session: Session = Depends(get_session),):
 
@@ -93,8 +89,6 @@ def get_shop_catalog(hero: Hero = Depends(get_current_hero),session: Session = D
         "hero_gold": hero.gold,
         "items_for_sale": shop_items
     }
-
-
 
 @router.post("/resolve_event")
 def resolve_event(choice: str, hero: Hero = Depends(get_current_hero), session: Session = Depends(get_session)):
@@ -166,7 +160,6 @@ def buy_artifact( artifact_id: int, hero: Hero = Depends(get_current_hero), sess
     
     return {"message": f"Куплено: {artifact.name}", "new_gold": hero.gold}
 
-
 @router.post("/pick_loot")
 def pick_loot(
     choice_type: str, # "artifact" или "spell"
@@ -236,7 +229,6 @@ def pick_loot(
         "current_artifacts": [a.name for a in hero.artifacts],
         "current_spells": [s.name for s in hero.spells]
     }   
-
 
 @router.get("/current_event")
 def get_current_event(hero: Hero = Depends(get_current_hero), session: Session = Depends(get_session)):

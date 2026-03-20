@@ -133,11 +133,14 @@ def check_for_loot(hero, is_boss=False):
 
 def generate_loot_choices(session):
     # Берем 2 случайных артефакта
-    all_arts = session.exec(select(Artifact)).all()
+    statement_arts = select(Artifact).where(Artifact.rarity != "admin")
+    all_arts = session.exec(statement_spell).all()
     arts_sample = random.sample(all_arts, k=2)
     
     # Берем 2 случайных заклинания
-    all_spells = session.exec(select(Spell)).all()
+
+    statement_spell = select(Spell).where(Spell.rarity != "admin")
+    all_spells = session.exec(statement_spell).all()
     spells_sample = random.sample(all_spells, k=2)
     
     return {

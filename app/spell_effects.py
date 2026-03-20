@@ -44,11 +44,27 @@ def heal_self(hero, session):
         f"Состояние: {hero.hp}/{hero.max_hp} HP."
     )
 
+def admin_kill(hero, session):
+    if not hero.active_monster_id:
+        return "Здесь нет врагов"
+    
+    # Ищем монстра по ID, сохраненному у героя
+    monster = session.get(Monster, hero.active_monster_id)
+    if not monster:
+        hero.active_monster_id = None
+        return "Монстр исчез в тени..."
+
+    damage = 999999
+    monster.current_hp -= int(damage)
+
+    return f"Огненный шар наносит {int(damage)} урона монстру {monster.name}!"
+
 
 
 # Реестр: связываем строку из БД с функцией
 SPELLS_EFFECTS = {
     "deal_fire_damage": cast_fire_damage,
-    "heal_self": heal_self
+    "heal_self": heal_self,
+    "deal_999999_damage": admin_kill
     
 }
