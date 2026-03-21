@@ -69,13 +69,11 @@ def get_room_type(floor: int, lane: int, seed: int) -> str:
     point_seed = f"{seed}-{floor}-{lane}"
     random.seed(point_seed)
     
-    #  0 этаж всегда отдых
-    if floor == 0 :
-        return "R"
-    #  Босс каждый 10-й этаж и этаж перед посом всегда отдых
+    #  Босс каждый 10-й этаж и этаж 
     if floor > 0 and floor % 10 == 0:
         return "BOSS"
-    if floor > 0 and floor % 9 == 0:
+    # перед посом всегда отдых
+    if floor > 0 and (floor % 10) % 9 == 0:
         return "R"
     
     # Распределение типов комнат
@@ -84,7 +82,14 @@ def get_room_type(floor: int, lane: int, seed: int) -> str:
     if roll < 0.6: return "B"   # 60% шанс битвы
     if roll < 0.75: return "E"  # 15% событие
     if roll < 0.90: return "S"   # 15% магазин
-    return "R"                  # 10% отдых
+    
+    # что б перед 9 этажем не было 2 отдыха подряд заменяем 8 этаж на бой 
+    else:                       
+        if (floor % 10) % 8 == 0:
+            return "B"
+        else:
+            return "R" 
+    
 
 def init_artifacts(session: Session):
     for data in PRESET_ARTIFACTS:
@@ -116,20 +121,6 @@ def init_encounters(session: Session):
             session.add(new_art)
     session.commit()
 
-def check_for_loot(hero, is_boss=False):
-    # Если босс — дроп 100%
-    if is_boss:
-        return True
-    
-    # Инкрементируем счетчик (только для обычных мобов)
-    hero.fights_without_drop += 1
-    
-    # Проверка на шанс 10% или Гарант (10-й бой)
-    if random.random() <= 0.10 or hero.fights_without_drop >= 10:
-        hero.fights_without_drop = 0  # Сбрасываем счетчик
-        return True
-    
-    return False
 
 def generate_loot_choices(session):
     # Берем 2 случайных артефакта

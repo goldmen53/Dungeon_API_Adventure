@@ -85,9 +85,9 @@ def attack_monster(hero: Hero = Depends(get_current_hero), session: Session = De
     # Проверка смерти героя
     if hero.hp <= 0:
         hero.hp = 0
-        # Здесь потом будет логика смерти (телепортация в город или удаление)
+        # Здесь логика смерти 
         # 
-        # ------НЕ ЗАБЫВАЕМ ДОБАВИТЬ ЛОГИКУ СМЕРТИ------
+        session.delete(hero)
         #
         #
         log.append("Вы погибли!")
@@ -118,8 +118,8 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
         raise HTTPException(status_code=404, detail="Заклинание не найдено")
     
     #  знает ли герой этот спелл
-    # if spell not in hero.spells:
-    #     raise HTTPException(status_code=400, detail="Герой не знает этого заклинания")
+    if spell not in hero.spells:
+         raise HTTPException(status_code=400, detail="Герой не знает этого заклинания")
 
     #  Хватает ли маны
     if hero.mp < spell.mp_cost:
@@ -159,11 +159,9 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
     # Проверка смерти героя
     if hero.hp <= 0:
         hero.hp = 0
-        # Здесь потом будет логика смерти (телепортация в город или удаление)
-        # 
-        # ------НЕ ЗАБЫВАЕМ ДОБАВИТЬ ЛОГИКУ СМЕРТИ------
-        #
-        #
+        
+        session.delete(hero)
+
         log.append("Вы погибли!")
         status = "defeat"
     else:

@@ -673,20 +673,34 @@ async function sendUpgrade(statKey) {
 function renderUpgradeOptions() {
     const hero = currentHeroCache;
     if (!hero) return;
+
     document.getElementById('availablePoints').textContent = hero.stat_points;
     const list = document.getElementById('upgradeList');
-    const stats = [
-        {k:'str', l:'Сила'}, {k:'agi', l:'Ловкость'}, {k:'vit', l:'Живучесть'}, 
-        {k:'int', l:'Интеллект'}, {k:'dex', l:'Меткость'}
-    ];
-    list.innerHTML = stats.map(s => `
-        <div class="upgrade-row">
-            <span>${s.l}</span>
-            <button onclick="sendUpgrade('${s.k}')" ${hero.stat_points <= 0 ? 'disabled' : ''}>+</button>
-        </div>
-    `).join('');
-}
 
+    // Добавляем свойство 'field', которое соответствует ключу в объекте hero
+    const stats = [
+        {k:'str', l:'Сила', field: 'strength'}, 
+        {k:'agi', l:'Ловкость', field: 'agility'}, 
+        {k:'vit', l:'Живучесть', field: 'vitality'}, 
+        {k:'int', l:'Интеллект', field: 'intelligence'}, 
+        {k:'dex', l:'Меткость', field: 'dexterity'}
+    ];
+
+    list.innerHTML = stats.map(s => {
+        // Получаем текущее значение из кэша. 
+        // Если вдруг данные не пришли, ставим 0, чтобы не было undefined
+        const currentVal = hero[s.field] || 0;
+
+        return `
+            <div class="upgrade-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span>${s.l} <b>${currentVal}</b></span>
+                <button onclick="sendUpgrade('${s.k}')" 
+                        ${hero.stat_points <= 0 ? 'disabled' : ''} 
+                        style="padding: 2px 10px;">+</button>
+            </div>
+        `;
+    }).join('');
+}
 // Открыть модалку создания
 window.openCreateHeroModal = function() {
     const modal = document.getElementById('modalCreateHero');

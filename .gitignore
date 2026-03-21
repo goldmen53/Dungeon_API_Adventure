@@ -11,3 +11,4 @@ __pycache__/
 # Базы данных (если вдруг создашь локальный файл sqlite)
 *.db
 .gitignore
+test.py
