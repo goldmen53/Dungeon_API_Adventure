@@ -113,35 +113,35 @@ function renderStats(hero) {
                             <div class="stat-line">
                                 <span>Strength:</span> 
                                 <div>
-                                    <span>${hero.total_strength}</span>
+                                    <span>${hero.strength}</span>
                                     <span style="color: #4caf50;">+${hero.total_strength - hero.strength}</span>
                                 </div>
                             </div>
                             <div class="stat-line">
                                 <span>Dexterity:</span> 
                                 <div>
-                                    <span>${hero.total_dexterity}</span>
+                                    <span>${hero.dexterity}</span>
                                     <span style="color: #4caf50;">+${hero.total_dexterity - hero.dexterity}</span>
                                 </div>
                             </div>
                             <div class="stat-line">
                                 <span>Agility:</span> 
                                 <div>
-                                    <span>${hero.total_agility}</span>
+                                    <span>${hero.agility}</span>
                                     <span style="color: #4caf50;">+${hero.total_agility - hero.agility}</span>
                                 </div>
                             </div>
                             <div class="stat-line">
                                 <span>Intelligence:</span> 
                                 <div>
-                                    <span>${hero.total_intelligence}</span>
+                                    <span>${hero.intelligence}</span>
                                     <span style="color: #4caf50;">+${hero.total_intelligence - hero.intelligence}</span>
                                 </div>
                             </div>
                             <div class="stat-line">
                                 <span>Vitality:</span> 
                                 <div>
-                                    <span>${hero.total_vitality}</span>
+                                    <span>${hero.vitality}</span>
                                     <span style="color: #4caf50;">+${hero.total_vitality - hero.vitality}</span>
                                 </div>
                             </div>
@@ -941,7 +941,11 @@ window.resolveEvent = async function(choiceValue) {
     } catch (e) { console.error("Ошибка при выборе:", e); }
 };
 
-
+function handleRebirth() {
+    // Просто перезагружаем страницу. 
+    // Скрипт при старте увидит токен, не найдет героя и откроет создание.
+    location.reload();
+}
 
 
 // Старт
