@@ -35,7 +35,7 @@ PRESET_ENCOUNTERS = [
         "description": "Гоблин подбрасывает золотую монету. 'Сыграем?  Угадаешь сторону — удвою ставку. Нет — заберу кошелек!Вы можете пройти мимо ",
         "effect_key": "goblin_event",
         "rarity": "base",
-        "choice_1_text": "сыграть",
+        "choice_1_text": "Сыграть",
         "choice_1_val": "play",
         "choice_2_text": "Уйти",
         "choice_2_val": "go_away"
@@ -50,6 +50,20 @@ PRESET_ENCOUNTERS = [
         "choice_1_val": "reach",
         "choice_2_text": "Сосредоточиться на магическом барьере",
         "choice_2_val": "decode"
+},
+
+{
+        "name": "Странное зеркало",
+        "description": "В очередном тунеле на стене вы видите странное зеркало , вам кажеться что за ним что-то есть",
+        "effect_key": "mirror_event",
+        "rarity": "base",
+        "choice_1_text": "Всмотреться в свое отражение",
+        "choice_1_val": "look_closer",
+        "choice_2_text": "Разбить зеркало",
+        "choice_2_val": "crash_mirror",
+        "choice_3_text": "Пройти мимо",
+        "choice_3_val": "go_forward"
+
 },
 
 ]

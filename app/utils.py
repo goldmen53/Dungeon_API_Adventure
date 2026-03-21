@@ -53,7 +53,7 @@ def give_monster_rewards(hero, monster,session):
     
     # Проверка на повышение уровня 
     lvl_up_msg = ""
-    if hero.xp >= 100:
+    while hero.xp >= 100:
         hero.level+=1
         hero.stat_points+=5
         hero.xp -= 100
@@ -139,3 +139,42 @@ def generate_loot_choices(session):
         "spells": spells_sample
     }
 
+def hero_overflow_check(hero:str ,stat_max: int | None =50):
+    if hero.strength > stat_max:
+         hero.strength = stat_max
+
+    if hero.agility > stat_max:
+         hero.agility = stat_max
+
+    if hero.vitality > stat_max:
+         hero.vitality = stat_max
+
+    if hero.intelligence > stat_max:
+         hero.intelligence = stat_max
+
+    if hero.dexterity > stat_max:
+         hero.dexterity = stat_max 
+
+    if hero.hp > hero.max_hp:
+         hero.hp =  hero.max_hp
+    
+    if hero.mp > hero.max_mp:
+         hero.mp = hero.max_mp
+
+    if hero.strength < 1:
+         hero.strength = 1
+
+    if hero.agility < 1:
+         hero.agility = 1
+
+    if hero.vitality < 1:
+         hero.vitality = 1
+
+    if hero.intelligence < 1:
+         hero.intelligence = 1
+
+    if hero.dexterity < 1:
+         hero.dexterity = 1 
+    
+    if hero.mp < 1:
+         hero.mp = 1

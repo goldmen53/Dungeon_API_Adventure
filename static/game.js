@@ -7,7 +7,7 @@
 let isGlobalBattleLock = false; // Блокировка интерфейса картой
 
 const roomNames = { 
-    "B": "Схватка", 
+    "B": "Бой", 
     "BOSS": "Главарь", 
     "E": "Событие", 
     "R": "Отдых", 
