@@ -1,18 +1,12 @@
 import random
 from fastapi import FastAPI, Depends, HTTPException,Body,APIRouter
-from app import monsters
 from app.database import init_db, get_session
-from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact,HeroRead,Encounters,Spell,User
+from app.models import Hero,Artifact,HeroRead,Encounters,Spell,User
 from sqlmodel import Session, select
-from app.monsters import create_monster_params
-from fastapi.responses import FileResponse
-from app.effects import BATTLE_EFFECTS
 from app.encounters_effects import ENCAUNTERS_EFFECTS
-from app.spell_effects import SPELLS_EFFECTS
-from typing import List
-from app.utils import give_monster_rewards,get_room_type,init_artifacts,init_spells,init_encounters
-from app.auth_utils import get_current_hero,get_password_hash,create_access_token,verify_password,get_current_user,verify_admin
-from fastapi.security import OAuth2PasswordRequestForm
+from app.utils import get_room_type
+from app.auth_utils import get_current_hero
+
 
 
 

@@ -48,9 +48,9 @@ def create_monster_params(floor: int, is_boss: bool = False):
     max_atk = int(template["base_attack"][1] * level_factor)
     
     # Скейлинг наград
-    xp = int(template["base_xp"] * level_factor)
+    xp = int(template["base_xp"])
     min_g = int(template["base_gold"][0] * level_factor)
-    max_g = int(template["base_gold"][1] * level_factor)
+    max_g = int(template["base_gold"][1] * (level_factor *1.5))
 
     return {
         "name": f"{name_prefix}{template['name']}",

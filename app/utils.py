@@ -90,7 +90,6 @@ def get_room_type(floor: int, lane: int, seed: int) -> str:
         else:
             return "R" 
     
-
 def init_artifacts(session: Session):
     for data in PRESET_ARTIFACTS:
         # Проверяем, существует ли уже такой артефакт
@@ -120,7 +119,6 @@ def init_encounters(session: Session):
             new_art = Encounters(**data)
             session.add(new_art)
     session.commit()
-
 
 def generate_loot_choices(session):
     # Берем 2 случайных артефакта
