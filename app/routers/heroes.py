@@ -55,8 +55,8 @@ def create_hero(
 
 @router.get("/me", response_model=HeroRead)
 def get_my_hero(hero: Hero = Depends(get_current_hero)):
-    # Если герой есть, get_current_hero его вернет. 
-    # Если его нет (умер или не создан), вылетит 404 — и фронтенд поймет, что делать.
+    if not hero:
+        return None
     return hero
 
 @router.post("/upgrade")

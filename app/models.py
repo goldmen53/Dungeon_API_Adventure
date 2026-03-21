@@ -2,6 +2,9 @@ from sqlmodel import SQLModel, Field, Relationship,Column,JSON
 from typing import Optional, List,Dict
 import random
 from pydantic import BaseModel
+from typing import Optional
+from sqlmodel import SQLModel, Field
+
 
 class User(SQLModel, table=True):
     id : Optional[int] = Field(default=None, primary_key=True)
@@ -229,8 +232,7 @@ class HeroRead(BaseModel):
     class Config:
         from_attributes = True
 
-from typing import Optional
-from sqlmodel import SQLModel, Field
+
 
 class Encounters(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

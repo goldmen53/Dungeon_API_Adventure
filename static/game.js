@@ -608,22 +608,47 @@ btnSubmitAuth?.addEventListener('click', async () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password })
         });
-        if (res.ok) showAuthMessage("Успех! Войдите.", false);
-        else { const d = await res.json(); showAuthMessage(d.detail); }
-    } else {
-        const formData = new FormData();
-        formData.append('username', username);
-        formData.append('password', password);
-        const res = await fetch('http://127.0.0.1:8000/auth/token', { method: 'POST', body: formData });
+
         if (res.ok) {
-            const data = await res.json();
-            localStorage.setItem('token', data.access_token);
-            localStorage.setItem('username', username);
-            modalAuth.style.display = "none";
-            updateUI();
-        } else { showAuthMessage("Ошибка входа"); }
+            // ВМЕСТО сообщения "Войдите", сразу вызываем логин
+            await loginUser(username, password);
+        } else {
+            const d = await res.json();
+            showAuthMessage(d.detail || "Ошибка регистрации");
+        }
+    } else {
+        // Обычный вход
+        await loginUser(username, password);
     }
 });
+
+async function loginUser(username, password) {
+    const formData = new FormData();
+    formData.append('username', username);
+    formData.append('password', password);
+
+    const res = await fetch('http://127.0.0.1:8000/auth/token', { 
+        method: 'POST', 
+        body: formData 
+    });
+
+    if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('username', username);
+        
+        modalAuth.style.display = "none";
+        
+        // 1. Обновляем интерфейс (кнопки войти/выйти)
+        updateUI(); 
+        
+        // 2. Проверяем наличие героя
+        await checkHeroAndInit();
+    } else {
+        showAuthMessage("Ошибка входа после регистрации");
+    }
+}
+
 
 // События модалок
 document.getElementById('btnLogin')?.addEventListener('click', () => {
@@ -668,6 +693,26 @@ async function sendUpgrade(statKey) {
             renderUpgradeOptions();
         }
     } catch (e) { console.error(e); }
+}
+
+async function checkHeroAndInit() {
+    const token = localStorage.getItem('token');
+    try {
+        const res = await fetch('http://127.0.0.1:8000/heroes/me', { // Предположим, у вас есть такой эндпоинт
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.status === 404 || (res.ok && !(await res.json()))) {
+            // Если героя нет — открываем модалку создания
+            window.openCreateHeroModal();
+        } else {
+            // Если герой есть — загружаем игру
+            await loadHeroData();
+            await updateMap();
+        }
+    } catch (e) {
+        console.error("Ошибка при проверке героя:", e);
+    }
 }
 
 function renderUpgradeOptions() {
@@ -862,6 +907,8 @@ window.resolveEvent = async function(choiceValue) {
         }
     } catch (e) { console.error("Ошибка при выборе:", e); }
 };
+
+
 
 
 // Старт
