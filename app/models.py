@@ -72,7 +72,7 @@ class Hero(SQLModel, table=True):
 
     @property
     def max_hp(self) -> int:
-        return 20 + (self.total_vitality * 10)
+        return 100 + (self.total_vitality * 10)
     
     @property
     def total_flee(self) -> int:

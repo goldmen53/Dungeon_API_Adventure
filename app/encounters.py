@@ -66,4 +66,20 @@ PRESET_ENCOUNTERS = [
 
 },
 
+{
+        "name": "Грибная поляна",
+        "description": "Вы наткнулись на гибрную поляну.Грибы на ней вышлядят вполне съедобными ",
+        "effect_key": "mushroom_event",
+        "rarity": "base",
+        "choice_1_text": "Сьесть красный гриб",
+        "choice_1_val": "eat_red",
+        "choice_2_text": "Сьесть синий гриб",
+        "choice_2_val": "eat_blue",
+        "choice_3_text": "Растоптать грибы",
+        "choice_3_val": "trample_mushrooms",
+        "choice_4_text": "Пройти мимо",
+        "choice_4_val": "go_forward"
+
+},
+
 ]

@@ -176,6 +176,49 @@ def effect_strange_mirror(hero,session,choice):
         hero.mp -=5
         hero_overflow_check(hero)
         msg= "Вы думаете ,что зеркало слишком подозрительно выглядит и  решаете пройти мимо. Как только вы отварачиваетесь появлеться ощущение как-будто вам смотрет в спину. Впрочем, через пару шагов ощущение пропадает.(Вы теряете 5 SP)   "
+    hero.active_event_id = None
+    return msg
+
+def effect_mushroom_event(hero,sesion,choice):
+    if choice == "eat_red":
+
+        if hero.hp == hero.max_hp:
+            hero.vitality += 2 
+            
+            msg = "Вы видете белого кролика вдали лабиринта, но проморгавшись вы поняли, что вам просто показалось. Вы чувствуете себя гораздо бодрее. (vit +2)"
+        else:
+            
+            hero.vitality += 1 
+            hero.hp = hero.max_hp
+            msg = "Вы видете белого кролика вдали лабиринта, но проморгавшись вы поняли, что вам просто показалось.Ваши раны затянулись и вы почуствовали себя немного бодрее. (HP востановленно, vit+1)"
+             
+
+
+    if choice == "eat_blue":
+        if hero.mp == hero.max_mp:
+            hero.max_mp += 5
+            msg = "Вы чувствуете что ваша магическая емкость увеличилась (max_mp +5)"
+        else:
+            hero.max_mp += 3
+            hero.mp= hero.max_mp
+            msg = "Ваши магически силы востановились и вы чувствуете что ваша магическая емкость увеличилась (SP востановленно max_mp +3)"
+
+
+    if choice == "trample_mushrooms":
+
+        hero.mp =hero.max_mp
+        hero.hp =hero.max_hp
+        msg = 'Вы безжалостно давите грибы ногами! Вы вдыхаете споры раздавленых грибов и падаете без сознания. Очнувшись вы чувствуете что хорошо отдохнули! (Ваши MP и HP полностью востановлены)'
+        
+    if choice == "go_forward":
+        msg="Вы проходите мимо"
+
+
+
+
+
+    hero_overflow_check(hero)
+    hero.active_event_id = None
     return msg
 
 # Реестр: связываем строку из БД с функцией
@@ -184,5 +227,6 @@ ENCAUNTERS_EFFECTS = {
     "altar_event": effect_altar_sacrifice,
     "goblin_event": effect_goblin_gamble,
     "library_event": effect_ancient_library,
-    "mirror_event": effect_strange_mirror
+    "mirror_event": effect_strange_mirror,
+    "mushroom_event": effect_mushroom_event
 }
