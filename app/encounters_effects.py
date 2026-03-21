@@ -1,7 +1,6 @@
 from sqlmodel import Session, select
 from app.models import Hero
-from fastapi import FastAPI, Depends, HTTPException
-from app.database import init_db, get_session
+from fastapi import HTTPException
 import random
 
 
@@ -77,25 +76,47 @@ def effect_goblin_gamble(hero, session, choice):
     return msg
 
 def effect_ancient_library(hero, session, choice):
+    
+    damage = 10
     if choice == "reach":
         if hero.agility >= random.randrange(10,16):
             hero.agility += 1
-            if hero.agility >50:
-                hero.agility = 50 
-
             msg = "Вы ловко взобрались по стеллажам и изучили свиток!"
+            if hero.agility >=50:
+
+                hero.agility = 50 
+                msg = "Вы ловко взобрались по стеллажам и изучили свиток,но все это вы и так знали!"
         else:
-            hero.hp -= 10
-            msg = "Стеллаж рухнул прямо на вас. Больно..."
+            if hero.hp < damage:
+                hero.hp = 1
+                msg = f"Стеллаж рухнул прямо на вас. Больно... и чуть не убил вас "
+            else :
+                hero.hp -= damage
+                msg = f"Стеллаж рухнул прямо на вас. Больно... Вы ушиблись и потеряли {damage} "
+
+
+
     elif choice == "decode":
         if hero.intelligence >= random.randrange(10,16):
             hero.intelligence += 1
-            if hero.intelligence >50:
-                hero.intelligence = 50 
-
             msg = "Сложные знаки сложились в знания. Вы стали мудрее."
+            if hero.intelligence >=50:
+                hero.intelligence =50 
+                msg = "Сложные знаки сложились в знания, но все это вы и так знали "
+
+            
         else:
-            msg = "Текст кажется бессмысленным набором каракуль."
+            msg = "Текст кажется бессмысленным набором каракуль.Вам кажеться что вы немного поглупели"
+            hero.intelligence -= 1
+            if hero.intelligence <= 1:
+                hero.intelligence = 1 
+                if hero.hp < damage:
+                    hero.hp = 1
+                    msg = f"Вам больно осозновать что вы настолько глупы. Вы получете урон по самолюбию, настолько что вы почти теряете сознание"
+                else :
+                    hero.hp -= damage
+                    msg = f"Вам больно осозновать что вы настолько глупы. Вы получете урон по самолюбию.Вы теряете  {damage} hp из-за ментального стстояния "
+                
     
     hero.active_event_id = None
     return msg
