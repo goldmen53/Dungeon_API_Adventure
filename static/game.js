@@ -62,10 +62,10 @@ async function loadHeroData() {
                 showPickLootModal(hero.pending_loot);
             }
             
-            // Если герой жив и загружен, обновляем карту
-            await updateMap(); 
+            // ❌ УДАЛИ ИЛИ ЗАКОММЕНТИРУЙ ЭТУ СТРОКУ:
+            // await updateMap(); 
+
         } else if (response.status === 404) {
-            // Если героя нет, зачищаем интерфейс и предлагаем создать
             currentHeroCache = null;
             document.getElementById('statsContent').innerHTML = `
                 <div class="panel-notice">
@@ -73,7 +73,6 @@ async function loadHeroData() {
                     <button onclick="window.openCreateHeroModal()" class="primary-btn">Создать героя</button>
                 </div>
             `;
-            // Скрываем карту, так как ходить некому
             const controls = document.getElementById('movementControls');
             if (controls) controls.innerHTML = "";
         }
@@ -220,10 +219,10 @@ async function updateMap() {
         }
 
         else if (currentRoomType === "E") {
-            // МЫ В СОБЫТИИ
             if (eventUI) eventUI.style.display = 'flex';
             if (movementUI) movementUI.style.display = 'none';
-            loadCurrentEvent(); // Запрашиваем текст и кнопки с сервера
+            // Перекладываем всю проверку на саму функцию загрузки ивента
+            loadCurrentEvent();
         }
 
         const currentFloor = data.hero_position.floor;
@@ -622,7 +621,9 @@ function updateUI() {
         guestBlock.style.display = 'none';
         userBlock.style.display = 'flex';
         document.getElementById('playerName').textContent = localStorage.getItem('username');
-        loadHeroData(); // updateMap вызовется внутри неё только при успехе
+        
+        // ВМЕСТО просто loadHeroData() запускаем нашу связку:
+        checkHeroAndInit(); 
     } else {
         guestBlock.style.display = 'block';
         userBlock.style.display = 'none';
@@ -721,11 +722,12 @@ async function sendUpgrade(statKey) {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        
         if (res.ok) {
             await loadHeroData();
             renderUpgradeOptions();
         }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.log(e); }
 }
 
 async function checkHeroAndInit() {
@@ -891,7 +893,13 @@ window.loadCurrentEvent = async function() {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
-        if (!response.ok) return;
+        if (!response.ok) {
+            // 🔥 БАГФИКС: Если сервер выдал 400 или 404 (событие уже пройдено),
+            // мы просто скрываем окно ивента и показываем кнопки ходьбы!
+            document.getElementById('eventInterface').style.display = 'none';
+            document.getElementById('movementControls').style.display = 'flex'; // Или 'grid'
+            return; 
+        }
         
         const data = await response.json();
 
@@ -903,13 +911,11 @@ window.loadCurrentEvent = async function() {
         const container = document.getElementById('eventChoicesContainer');
         container.innerHTML = '';
         
-        // Создаем новые кнопки из массива
+        // Создаем новые
         data.choices.forEach(choice => {
             const btn = document.createElement('button');
             btn.textContent = choice.text;
             btn.style = "background: #9c27b0; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 80%; max-width: 300px; font-weight: bold;";
-            
-            // При клике отправляем value на сервер
             btn.onclick = () => resolveEvent(choice.value); 
             container.appendChild(btn);
         });
