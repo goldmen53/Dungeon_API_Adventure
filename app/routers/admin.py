@@ -65,7 +65,7 @@ def update_hero(name: str, hero_data: HeroUpdate, session: Session = Depends(get
 
     for key, value in update_dict.items():
         # Базовая логика ограничений (пример для HP)
-        if key == "current_hp":
+        if key == "hp":
             # Не даем упасть ниже 0 и подняться выше макс_хп
             value = max(0, min(value, db_hero.max_hp))
         

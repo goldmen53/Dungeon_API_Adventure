@@ -391,6 +391,24 @@ async function moveHero(targetLane) {
 
 // --- 5. ЛОГИКА БОЯ ---
 
+function showDeathScreen(heroName) {
+    const modal = document.getElementById('modalDeath');
+    const msg = document.getElementById('deathMessage');
+    if (modal && msg) {
+        msg.textContent = `Герой ${heroName} пал смертью храбрых в битве с чудовищем.`;
+        modal.style.display = 'block';
+        
+        // Закрываем другие окна
+        if (typeof modalAuth !== 'undefined') modalAuth.style.display = "none";
+        const lootModal = document.getElementById('modalLoot');
+        if (lootModal) lootModal.style.display = 'none';
+        
+        // ОЧИЩАЕМ ТОЛЬКО ДАННЫЕ ГЕРОЯ, НО НЕ АККАУНТ
+        // localStorage.removeItem('heroData'); // Если ты хранишь кэш героя отдельно
+        // Токен НЕ ТРОГАЕМ, чтобы не разлогинило
+    }
+}
+
 function showBattleMode(isBattle) {
     const battleUI = document.getElementById('battleInterface');
     const navigationUI = document.getElementById('navigationBlock');
@@ -478,29 +496,50 @@ async function sendAttack() {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        
         const data = await response.json();
+
+        // 1. Выводим логи в общий чат логов
         if (data.log) data.log.forEach(msg => addLog(msg));
 
-        if (data.status === "victory") {
-            // ВАЖНО: Сбрасываем интерфейс старого монстра!
-            updateMonsterUI("0/1"); // Обнулит полоску
-            document.getElementById('monsterName').textContent = "Враг"; 
-            document.getElementById('monsterHpText').textContent = "HP: ??/??";
-
-            showBattleMode(false); 
-            showLootModal(data.log ? data.log[data.log.length-1] : "Победа!");
-            await loadHeroData();
-
-        } else if (data.status === "defeat") {
-            alert("Вы погибли!");
-            location.reload();
-        } else {
-            updateMonsterUI(data.monster_hp);
-            await loadHeroData();
+        // 2. СМЕРТЬ ГЕРОЯ
+        if (data.status === "defeat") {
+            showDeathScreen(data.hero_name || "Ваш герой");
+            return;
         }
-    } catch (e) { console.error("Ошибка атаки:", e); }
-}
 
+        // 3. ПОБЕДА НАД МОНСТРОМ
+        if (data.status === "victory") {
+            updateMonsterUI("0/1"); 
+            // Сбрасываем текст врага
+            document.getElementById('monsterName').textContent = "Враг"; 
+            document.getElementById('monsterHpText').textContent = "HP: 0/0";
+
+            showBattleMode(false); // Прячем кнопки боя
+            
+            // Показываем модалку лута (только при победе!)
+            const victoryMsg = data.log ? data.log[data.log.length - 1] : "Победа!";
+            showLootModal(victoryMsg);
+            
+            await loadHeroData(); // Обновляем золото/опыт в интерфейсе
+            return;
+        }
+
+        // 4. БОЙ ПРОДОЛЖАЕТСЯ (ongoing)
+        if (data.status === "ongoing") {
+            updateMonsterUI(data.monster_hp);
+            // Если в ответе есть данные героя, обновляем его полоску HP
+            if (data.hero_hp) {
+                // Предположим, у вас есть функция renderStats или аналогичная
+                await loadHeroData(); 
+            }
+        }
+
+    } catch (e) { 
+        console.error("Ошибка атаки:", e); 
+        addLog("Ошибка соединения с сервером");
+    }
+}
 async function sendCast(spellId) {
     const token = localStorage.getItem('token');
     try {
@@ -510,59 +549,53 @@ async function sendCast(spellId) {
         });
         
         const data = await response.json();
-        if (data.log) data.log.forEach(msg => addLog(msg));
-        if (response.ok) {
 
+        // 1. Логи боя (урон, промахи) — пишем всегда в общий лог игры
+        if (data.log) {
+            data.log.forEach(msg => addLog(msg));
+        }
+
+        // 2. Смерть героя — показываем траурное окно
+        if (data.status === "defeat") {
+            showDeathScreen(data.hero_name || "Ваш герой");
+            return; 
+        }
+
+        if (response.ok) {
+            // 3. Обновляем статы героя (мана потратилась, хп убавилось)
             if (data.hero) {
-                // Если в пришедшем герое нет спеллов, но в нашем кеше они были - сохраняем старые
+                // Сохраняем кеш спеллов/артефактов
                 if ((!data.hero.spells || data.hero.spells.length === 0) && currentHeroCache.spells) {
                     data.hero.spells = currentHeroCache.spells;
                 }
-                if ((!data.hero.artifacts || data.hero.artifacts.length === 0) && currentHeroCache.artifacts) {
-                    data.hero.artifacts = currentHeroCache.artifacts;
-                }
+                currentHeroCache = data.hero;
+                renderStats(currentHeroCache);
+            }
+
+            // 4. РЕАЛЬНАЯ ПОБЕДА
+            if (data.status === "victory") {
+                updateMonsterUI("0/1"); 
+                showBattleMode(false); // Прячем интерфейс боя
                 
-                currentHeroCache = data.hero;
-                renderStats(currentHeroCache);
+                // Показываем окно лута ТОЛЬКО ТУТ
+                const victoryMsg = data.log ? data.log[data.log.length - 1] : "Победа!";
+                showLootModal(victoryMsg);
+                
+                await loadHeroData();
+                return; // Выходим из функции
             }
 
-            if (data.message) addLog(data.message);
-            
-            // 1. Сначала обновляем статы героя (мана и т.д.)
-            if (data.hero) {
-                currentHeroCache = data.hero;
-                renderStats(currentHeroCache);
-            }
-
-            // 2. СРОЧНОЕ ОБНОВЛЕНИЕ МОНСТРА
-            // Если твой бэк в /cast возвращает монстра (проверь это в консоли), 
-            // то берем данные оттуда. Если нет - берем из data.monster_hp (если ты его добавил в return)
+            // 5. БОЙ ПРОДОЛЖАЕТСЯ
+            // Если мы здесь — значит никто не умер. Просто обновляем HP полоски.
             if (data.monster_hp) {
                 updateMonsterUI(data.monster_hp);
-            } else {
-                // Если бэк не шлет монстра в ответе /cast, нам нужно сделать 
-                // запрос loadHeroData и ПОДОЖДАТЬ его выполнения
-                await loadHeroData();
-                
-                // После loadHeroData монстр в кэше должен быть свежим
-                if (currentHeroCache && currentHeroCache.active_monster) {
-                    const m = currentHeroCache.active_monster;
-                    const c_hp = m.current_hp !== undefined ? m.current_hp : m.hp;
-                    updateMonsterUI(`${c_hp}/${m.max_hp}`);
-                }
             }
-
-            // 3. ПРОВЕРКА ПОБЕДЫ
-            // Если ID монстра исчез из героя — значит, он умер
-            if (!currentHeroCache.active_monster_id) {
-                updateMonsterUI("0/100"); // Визуально обнуляем полоску
-                showBattleMode(false);
-                showLootModal(data.log ? data.log[data.log.length-1] : "Удар магией добил монстра!");
-            }
-
-            renderBattleSpells(); // Обновляем кнопки спеллов (доступность по мане)
+            
+            renderBattleSpells(); // Обновляем кнопки (вдруг мана кончилась)
         }
-    } catch (e) { console.error("Ошибка каста:", e); }
+    } catch (e) { 
+        console.error("Ошибка каста:", e); 
+    }
 }
 
 function showLootModal(message) {

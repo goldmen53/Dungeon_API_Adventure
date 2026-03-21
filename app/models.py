@@ -152,13 +152,13 @@ class HeroUpdate(SQLModel):
     dexterity: Optional[int] = None
     intelligence: Optional[int] = None
     agility: Optional[int] = None
-    current_hp: Optional[int] = None
+    hp: Optional[int] = None
     gold: Optional[int] = None
     xp: Optional[int] = None
     level: Optional[int] = None
     max_hp: Optional[int] = None
     max_mp: Optional[int] = None
-    current_mp: Optional[int] = None
+    mp: Optional[int] = None
     stat_points: Optional[int] = None
     active_event_id: Optional[int] = None
     world_seed: Optional[int] = None

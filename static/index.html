@@ -92,6 +92,17 @@
     </div>
 </div>
 
+<div id="modalDeath" class="modal" style="display: none; background: rgba(0,0,0,0.9);">
+    <div class="modal-content death-theme">
+        <h1 style="color: #ff0000; font-family: 'Georgia', serif; font-size: 3em;">ПОКОЙСЯ С МИРОМ</h1>
+        <hr>
+        <p id="deathMessage" style="font-size: 1.2em; margin: 20px 0;"></p>
+        <p>Ваше приключение закончилось. Герой был удален из летописей.</p>
+        <button onclick="location.reload()" style="padding: 15px 30px; cursor: pointer; background: #333; color: white; border: 1px solid #777;">
+            Начать новую историю
+        </button>
+    </div>
+</div>
 
 
 </main>
@@ -153,6 +164,9 @@
         </div>
     </div>
 
+
+ 
+
     <script src="static/game.js"></script>
 
 <div id="modalPickLoot" class="modal">
@@ -168,4 +182,13 @@
 
 
 </body>
+
+<script>
+function handleRebirth() {
+    // Просто перезагружаем страницу. 
+    // Скрипт при старте увидит токен, не найдет героя и откроет создание.
+    location.reload();
+}
+</script>
+
 </html>

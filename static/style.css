@@ -409,3 +409,11 @@
     padding: 10;        /* Убираем внутренний отступ, чтобы окно прилегало к краям */
     overflow: hidden;  /* Чтобы ничего не вылетало за границы */
 }
+
+.death-theme {
+    border: 2px solid #551a1a;
+    background-color: #1a1a1a;
+    color: #ccc;
+    text-align: center;
+    box-shadow: 0 0 50px rgba(255, 0, 0, 0.2);
+}
