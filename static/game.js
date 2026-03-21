@@ -227,11 +227,34 @@ async function updateMap() {
 
         const currentFloor = data.hero_position.floor;
         const currentLane = data.hero_position.lane;
-        const nextFloorNum = currentFloor + 1;
-        let nextFloorData = data.map_preview.find(f => f.floor === `F${nextFloorNum}` || f.floor === nextFloorNum);
-        
-        if (!nextFloorData) {
-            nextFloorData = { lanes: [0, 1, 2] }; 
+
+        // 1. Вычисляем номер следующего этажа (зацикливаем после 10)
+        // Если currentFloor = 10, то (10 % 10) + 1 = 1
+        let nextFloorNum = (currentFloor % 10) + 1;
+
+        // 2. Ищем данные в map_preview
+        // Проверяем оба формата: и число 1, и строку "F1"
+        let nextFloorData = data.map_preview.find(f => 
+            f.floor === `F${nextFloorNum}` || 
+            f.floor === nextFloorNum ||
+            f.floor === `F${currentFloor + 1}` // на случай, если этажей больше 10
+        );
+
+        // 3. Защита: если мы на БОССЕ и данные следующего этажа всё равно не нашлись
+        if (!nextFloorData && data.hero_position.room_type === "BOSS") {
+            addLog("Путь свободен! Переход на новый цикл...");
+            // Создаем виртуальный переход на 1-й этаж в центральную линию
+            nextFloorData = { lanes: { "Center (1)": "B" } }; 
+        }
+
+        // 4. Отрисовка
+        if (nextFloorData) {
+            renderMovementButtons(currentLane, nextFloorData.lanes);
+        } else {
+            console.error("Не удалось найти путь дальше!");
+            // Если совсем всё пропало, даем кнопку "В начало" вручную
+            const container = document.getElementById('movementControls');
+            container.innerHTML = `<button class="move-btn" onclick="moveHero(1)">В начало пути</button>`;
         }
 
         renderMovementButtons(currentLane, nextFloorData.lanes);
