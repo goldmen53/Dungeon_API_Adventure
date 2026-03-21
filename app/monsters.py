@@ -6,21 +6,21 @@ MONSTER_TEMPLATES = {
         "base_hp": 30,
         "base_attack": (2, 5),
         "base_gold": (1, 5),
-        "base_xp": 15
+        "base_xp": 20
     },
     "goblin": {
         "name": "Гоблин",
         "base_hp": 50,
         "base_attack": (5, 10),
         "base_gold": (5, 15),
-        "base_xp": 30
+        "base_xp": 25
     },
     "skeleton": {
         "name": "Скелет",
         "base_hp": 40,
         "base_attack": (8, 12),
         "base_gold": (0, 10),
-        "base_xp": 40
+        "base_xp": 30
     }
 }
 

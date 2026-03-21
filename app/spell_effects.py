@@ -16,7 +16,7 @@ def cast_fire_damage(hero ,session):
         hero.active_monster_id = None
         return "Монстр исчез в тени..."
 
-    damage = 10 + (hero.total_intelligence * 1.5)
+    damage = 10 + (hero.total_intelligence * 2) + hero.level
     monster.current_hp -= int(damage)
     
     
@@ -26,7 +26,7 @@ def cast_fire_damage(hero ,session):
 def heal_self(hero, session):
     base_power = 5
     # Интеллект теперь реально влияет на силу магии!
-    spell_power = base_power + hero.total_intelligence 
+    spell_power = base_power + (hero.total_intelligence *2) + hero.level
 
     if hero.hp >= hero.max_hp:
         # Возвращаем ману, если лечить нечего (опционально)

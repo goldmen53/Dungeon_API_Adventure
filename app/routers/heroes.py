@@ -26,21 +26,20 @@ router = APIRouter(
 def create_hero(
     name: str, 
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user) # 1. Получаем юзера из токена
+    current_user: User = Depends(get_current_user) # Получаем юзера из токена
 ):
-    # 2. Проверяем, нет ли уже такого имени (твой код)
+    # Проверяем, нет ли уже такого имени
     existing_name = session.exec(select(Hero).where(Hero.name == name)).first()
     if existing_name:
         raise HTTPException(status_code=400, detail="Это имя уже занято")
 
-    # 3. Проверяем, нет ли уже героя у этого аккаунта (Roguelike правило: 1 юзер = 1 герой)
+    # Проверяем, нет ли уже героя у этого аккаунта 
     existing_hero = session.exec(select(Hero).where(Hero.user_id == current_user.id)).first()
     if existing_hero:
         raise HTTPException(status_code=400, detail="У вас уже есть активный герой")
 
-    # 4. Создаем героя, привязывая его к ID текущего юзера
+    # Создаем героя, привязывая его к ID текущего юзера
     new_hero = Hero(name=name, user_id=current_user.id)
-    
     session.add(new_hero)
     session.commit()
     session.refresh(new_hero)

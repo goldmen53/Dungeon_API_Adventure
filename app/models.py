@@ -63,7 +63,7 @@ class Hero(SQLModel, table=True):
     vitality: int = 10
     mp: int = 50
     max_mp: int = 50
-    hp: int = 100
+    hp: int = 200
     bonus_flee: int = 0
     bonus_crit: int = 0
     
