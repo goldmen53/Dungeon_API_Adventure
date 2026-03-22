@@ -13,10 +13,10 @@ def effect_berserk(hero, monster, damage=0):
         return "БЕРСЕРК! Урон удвоен!"
     return None
 
-def effect_spices(hero, monster, damage=0):
-    spices_damage=int(random.randint(monster.min_attack, monster.max_attack) * 0.15)
-    monster.current_hp -= spices_damage
-    return f"Урон шипами +{spices_damage}"
+def effect_spikes(hero, monster, damage=0):
+    spikes_damage=int(random.randint(monster.min_attack, monster.max_attack) * 0.15)
+    monster.current_hp -= spikes_damage
+    return f"Урон шипами +{spikes_damage}"
 
 def effect_atronach(hero, monster, damage=0):
     if hero.mp < hero.max_mp:
@@ -44,7 +44,7 @@ def effect_mad_crown(hero, monster, damage=0):
 BATTLE_EFFECTS = {
     "vampirism_15": effect_vampirism,
     "berserk_low_hp": effect_berserk,
-    "spikes_15":effect_spices,
+    "spikes_15":effect_spikes,
     "atronach":effect_atronach,
     "midas":effect_midas,
     "damage_5":effect_damage_5,

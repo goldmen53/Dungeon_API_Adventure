@@ -23,5 +23,7 @@ PRESET_SPELLS = [
         "mp_cost": 0,
         "level": 1,
         "rarity": "admin"
-    }
+    },
+    
+    
 ]

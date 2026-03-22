@@ -31,7 +31,7 @@ def hero_rest(hero: Hero = Depends(get_current_hero), session: Session = Depends
         )
     
     # ПРОВЕРКА ЗОЛОТА И ЗДОРОВЬЯ
-    heal_cost = 1
+    heal_cost = 5
     if hero.gold < heal_cost:
         raise HTTPException(status_code=400, detail="Нужно больше золота для припасов!")
     
@@ -190,8 +190,8 @@ def pick_loot(
         # Проверка на дубликаты (если артефакты уникальны)
         if artifact in hero.artifacts:
             # Если уже есть, можно дать компенсацию золотом
-            hero.gold += 50
-            message = f"У вас уже есть {artifact.name}. Вы получили 50 золотых вместо него."
+            hero.gold += 20
+            message = f"У вас уже есть {artifact.name}. Вы получили 20 золотых вместо него."
         else:
             hero.artifacts.append(artifact)
             message = f"Вы получили артефакт: {artifact.name}!"
@@ -202,8 +202,8 @@ def pick_loot(
             raise HTTPException(status_code=404, detail="Заклинание не найдено")
         
         if spell in hero.spells:
-            hero.gold += 30
-            message = f"Вы уже знаете заклинание {spell.name}. Получено 30 золотых."
+            hero.gold += 15
+            message = f"Вы уже знаете заклинание {spell.name}. Получено 15 золотых."
         else:
             hero.spells.append(spell)
             message = f"Вы выучили новое заклинание: {spell.name}!"
