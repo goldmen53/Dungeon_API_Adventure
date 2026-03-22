@@ -222,6 +222,149 @@ def effect_mushroom_event(hero,sesion,choice):
     hero.active_event_id = None
     return msg
 
+def effect_wishing_well(hero,sesion,choice):
+    if choice == "toss_coin":
+        
+        if hero.gold < 1:
+            msg= 'Пошарив по карманам вы поняли , что у вас нет ни одной монеты , которую можно бросить в колодец.Пожав плечами вы пошли дальше'
+        else:
+            hero.gold -= 10 
+            if hero.gold < 0:
+                hero.gold = 0
+            if random.random() > 0.4:
+                hero.gold += 50
+                msg = "Вы бросили конеты и уставилсь в бездну колодца, через несколько сукунт вы услышали как монеты плюхнулись в воду.Вы уже собирались пойти по своим делам , но услышали новый всплеск в колодце и через пару секунд на замлю упал мокрый мешочек полный золота"
+            else:
+                msg = "Вы бросили конеты и уставилсь в бездну колодца, но сколько вы бы не ждали никаких звуков из колодца так и не раздалось..."
+
+
+    if choice == "toss_rock":
+        damage =25
+        if random.random() > 0.5:
+            msg= f"Вы бросили камень и уставилсь в бездну колодца, через пару секунд из глубины кододца в на встречу к вас вылетел ещё больший камень и расшиб вам бровь.Из колодца доносеться недовольное ворчание (-{damage} HP)"
+            if hero.hp <= damage:
+                hero.hp = 1
+            else:
+                hero.hp -= damage
+        
+        else: 
+            msg= f"Вы бросили камень и уставилсь в бездну колодца, через пару секунд из глубины кододца в на встречу к вас вылетел какой-то обект и расшиб вам бровь.Вы присмотревшись вы понимаете что это табличка знаний (-{damage} HP, dex +3)"
+            if hero.hp <= damage:
+                hero.hp = 1
+            else:
+                hero.hp -= damage
+            hero.dexterity +=3
+
+
+    if choice == "spit":
+        if random.random() > 0.5:
+            msg = "Вы плюете в колодец и ничего не произходит"
+        else:
+            msg = "Вы плюете в колодец и в ответ из глубины вам тоже прилетает плевок. Удивительно хоть ваша мораль и пострадала, но вы чувствуете себя лучше (HP и SP немного востановлены)"
+            hero.hp +=50
+            hero.mp +=25
+    if choice == "look_inside":
+        if hero.agility > 15:
+            if random.random() > 0.5:
+                hero.strength += 2 
+                msg = "Вы заглядываете в колодец и видите между камнями магическую табличку вы стараетесь её достать и у вас получаеться!(str+2)"
+            else:
+                msg = "Вы заглядываете в колодец и видите между камнями магическую табличку вы стараетесь её достать, но табличка выскальзывает у вас с рук и падает в бездну..."
+        else:
+            msg = "Вы заглядываете в колодец, но видите только гнетущую темноту"
+
+    hero_overflow_check(hero)
+    hero.active_event_id = None
+    return msg
+
+def effect_cocoon(hero,sesion,choice):
+    damage = 50
+    if choice == "cut":
+        if random.random() > 0.5:
+            msg = "Ты спасаешь вора, который в благодарность он отдает тебе все свое золото (gold +15)"
+            hero.gold +=15
+        else:
+            msg =f"Из кокона вырывается рой мелких пауков! Вы отбились , но они успели здорово вас покусать ( -{damage} HP, +10xp)"
+            if hero.hp <= damage:
+                hero.hp = 1 
+            else:
+                hero.hp -= 50
+            hero.xp += 10
+
+
+    if choice == "ignore":
+        msg = "Вы проходите мимо"
+    
+    hero_overflow_check(hero)
+    hero.active_event_id = None
+    return msg
+
+def effect_burnt_chest(hero,sesion,choice):
+
+    damage = 50
+
+    if choice == "open_str":
+        if hero.strength >= random.randrange(10,20):
+            
+            msg = "Под градом ваших ударов сундук рассыпается в нем лежит пузерек с зельем здоровья и немного золотых(HP restore +10 gold)"
+            hero.hp = hero.max_hp
+            hero.gold +=15
+        else:
+            msg = f"После градов ваших ударов сундук никак не поддаеться. Вы вымотались и ваши руки кровоточат ,но это была отличная тренировка!(HP-{damage}, XP+5)"
+            if hero.hp <= damage:
+                hero.hp = 1
+            else:
+                hero.hp -= damage
+
+    if choice == "open_agi":
+        if hero.agility >= random.randrange(10,20):
+            msg = "Вы ловко вскрываете замок, но сундук полостю пуст!"
+        else:
+            msg = f"Вы пытаетесь вскрыть сундук , но отмычка ломаеться и вы слышите шипение.Вы пытаетесь отбежать, но не успеваете взрыв задевает вас!(HP-{damage})"
+            if hero.hp <= damage:
+                hero.hp = 1
+            else:
+                hero.hp -= damage
+
+
+    if choice == "ignore":
+        if random.random() > 0.9:
+            msg = "Когда вы проходите мимо сундук за вашей спиной загораеться! После того как он догорел из углей вы достали табличку знаний (int +1)"
+            hero.intelligence +=1 
+        else:
+            msg = "Вы проходите мимо"
+    
+    hero_overflow_check(hero)
+    hero.active_event_id = None
+    return msg
+
+def effect_cook(hero,sesion,choice):
+    if choice =="try":
+        if hero.gold < 1:
+            msg = "Покапавшись в карманах вы поняли , что у вас нет не одного золотого, что б заплтить за суп. Пожав плечами вы пошли дальше" 
+        else:
+            hero.gold -= 1
+            if random.random() > 0.5:
+                msg ="Гоблин дает вам тарелку супа , и она выглядит неплохо! Вы съели и ваши сили востановились.(HP +70, MP +10)"
+                hero.hp +=70
+                hero.mp +=10
+            else:
+                msg = "Гоблин дает вам тарелку супа, и она выглядит вполне съедобной! Вы сьели и чувство голода прошло ,но через время вы почуствовали какое-то жжение в животе(HP +40, MP -10)"
+                hero.hp +=40
+                hero.mp -=10
+            
+    if choice =="ignore":
+        if random.random() > 0.8:
+            msg = "Вы игнорируете гоблина и просто прходите мимо, За спиной слышите невнятное ворчание"
+        else: 
+            msg = "Вы пытаетесь пройти мимо, но гоблин настойчиво пытаеться вам что-то всучить.Он дает вам кусок сдобного теста. Отойдя подальше вы пробуете его.И это очень вкустно! Ваше настроение улучшилось (HP +20, MP +5) "
+            hero.hp +=20
+            hero.mp +=5
+
+    hero_overflow_check(hero)
+    hero.active_event_id = None
+    return msg
+
 # Реестр: связываем строку из БД с функцией
 ENCAUNTERS_EFFECTS = {
     "give_any_stat": encounter_give_any_stat,
@@ -229,5 +372,10 @@ ENCAUNTERS_EFFECTS = {
     "goblin_event": effect_goblin_gamble,
     "library_event": effect_ancient_library,
     "mirror_event": effect_strange_mirror,
-    "mushroom_event": effect_mushroom_event
+    "mushroom_event": effect_mushroom_event,
+    "wishing_well_event": effect_wishing_well,
+    "cocoon_event": effect_cocoon,
+    "burnt_chest_event" : effect_burnt_chest,
+    "сook_event":effect_cook
+    
 }

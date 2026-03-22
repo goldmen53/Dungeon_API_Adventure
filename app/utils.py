@@ -79,9 +79,9 @@ def get_room_type(floor: int, lane: int, seed: int) -> str:
     # Распределение типов комнат
     # 'B' - Battle, 'S' - Shop, 'R' - Rest, 'E' - Event/Question
     roll = random.random()
-    if roll < 0.6: return "B"   # 60% шанс битвы
-    if roll < 0.75: return "E"  # 15% событие
-    if roll < 0.90: return "S"   # 15% магазин
+    if roll < 0.55: return "B"   # 50% шанс битвы
+    if roll < 0.8: return "E"  # 25% событие
+    if roll < 0.9: return "S"   # 10% магазин
     
     # что б перед 9 этажем не было 2 отдыха подряд заменяем 8 этаж на бой 
     else:                       

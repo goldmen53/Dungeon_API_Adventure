@@ -36,7 +36,7 @@ def attack_monster(hero: Hero = Depends(get_current_hero), session: Session = De
         raise HTTPException(status_code=400, detail="Противник уже повержен")
 
     # --- ХОД ГЕРОЯ ---
-    hero_damage = random.randint(hero.total_strength, hero.total_strength + 5)
+    hero_damage = random.randint(10+hero.total_strength, 10+ hero.total_strength + hero.total_dexterity)
     log = []
 
     if random.random() <= hero.total_crit/100: 
@@ -113,6 +113,15 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
         raise HTTPException(status_code=400, detail="Недостаточно маны!")
     
     log=[]
+
+
+    # Эффекты артефактов
+    for art in hero.artifacts:
+        handler = BATTLE_EFFECTS.get(art.effect_key)
+        if handler:
+            effect_msg = handler(hero, monster, damage) 
+            if effect_msg: log.append(effect_msg)
+
 
     handler = SPELLS_EFFECTS.get(spell.effect_key)
     if handler:
