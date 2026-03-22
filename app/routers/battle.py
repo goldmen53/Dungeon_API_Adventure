@@ -117,9 +117,9 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
 
     # Эффекты артефактов
     for art in hero.artifacts:
-        handler = BATTLE_EFFECTS.get(art.effect_key)
-        if handler:
-            effect_msg = handler(hero, monster, damage) 
+        handler_art = BATTLE_EFFECTS.get(art.effect_key)
+        if handler_art:
+            effect_msg = handler_art(hero, monster) 
             if effect_msg: log.append(effect_msg)
 
 

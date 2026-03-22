@@ -37,6 +37,9 @@ class Artifact(SQLModel, table=True):
     bonus_intelligence: int = Field(default=0)
     bonus_agility: int = Field(default=0)
     bonus_dexterity: int = Field(default=0)
+    max_mp: int = Field(default=0)
+    bonus_flee: int = Field(default=0)
+    bonus_crit: int = Field(default=0)
     level: int = Field(default=1)
     cost: int = Field(default=1)
     rarity: str = Field(default="base") # base,rare,epic,boss,store
@@ -79,11 +82,13 @@ class Hero(SQLModel, table=True):
     
     @property
     def total_flee(self) -> int:
-        return (self.total_agility + self.bonus_flee)
+        bonus = sum(art.bonus_flee for art in self.artifacts)
+        return (self.total_agility + bonus)
     
     @property
     def total_crit(self) -> int:
-        return (self.total_dexterity + self.bonus_crit)
+        bonus = sum(art.bonus_crit for art in self.artifacts)
+        return (self.total_dexterity + bonus)
     
     @property
     def total_dexterity(self) -> int:
@@ -186,9 +191,18 @@ class ArtifactRead(BaseModel):
     name: str
     description: str
     bonus_strength: int
+    bonus_vitality: int
+    bonus_intelligence: int
+    bonus_agility: int
+    bonus_dexterity: int
+    bonus_flee: int
+    bonus_crit: int
     level: int
     cost: int 
     rarity: str # base,rare,epic,boss,store
+    max_mp: int 
+    
+
 
 class SpellRead(BaseModel):
     id : int

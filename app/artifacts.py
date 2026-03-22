@@ -24,8 +24,8 @@ PRESET_ARTIFACTS = [
         "effect_key": None,
         "bonus_vitality": 10,
         "level": 1,
-        "cost": 40,
-        "rarity": "base"
+        "cost": 60,
+        "rarity": "rare"
     },
     {
         "name": "Старый амулет",
@@ -38,7 +38,7 @@ PRESET_ARTIFACTS = [
         "bonus_dexterity": 1,
         "level": 1,
         "cost": 20,
-        "rarity": "base"
+        "rarity": "store"
     },
     {
         "name": "Кольцо Кровавого Шипа",
@@ -57,7 +57,7 @@ PRESET_ARTIFACTS = [
         "bonus_flee": 5,
         "level": 1,
         "cost": 30,
-        "rarity": "base"
+        "rarity": "rare"
     },
     {
         "name": "Око Истины",
@@ -69,13 +69,13 @@ PRESET_ARTIFACTS = [
         "rarity": "base"
     },
     {
-        "name": "Магическая шляпа",
-        "description": "Расширяет внутрение хранилище магической энергии (MP+20)",
+        "name": "Шляпа Мэрлина",
+        "description": "Коническая шляпа. Сильно увеличивает магический урон (int+10)",
         "effect_key": None,
-        "max_mp":20,
+        "bonus_intelligence": 10,
         "level": 1,
-        "cost": 25,
-        "rarity": "base"
+        "cost": 75,
+        "rarity": "rare"
     },
     {
         "name": "Амулет Атронаха",
@@ -96,7 +96,7 @@ PRESET_ARTIFACTS = [
 
     },
     {
-        "name": "Перчатка Медаса",
+        "name": "Перчатка Мидаса",
         "description": "Каждый удар дает немного золота(+1 str)",
         "effect_key": "midas",
         "bonus_strength": 1,
@@ -112,7 +112,7 @@ PRESET_ARTIFACTS = [
         "bonus_crit":10,
         "level": 1,
         "cost": 50,
-        "rarity": "rare"
+        "rarity": "boss"
         
     },
     {
@@ -122,14 +122,14 @@ PRESET_ARTIFACTS = [
         "bonus_vitality": 5,
         "level": 1,
         "cost": 45,
-        "rarity": "rare"
+        "rarity": "epic"
         
     },
 
     {
         "name": "Перчатки Кузнеца",
         "description": "Увесистые кожаные перчатки(+4 vit, +2 str)",
-        "effect_key": "mad_crown",
+        "effect_key": None,
         "bonus_vitality": 4,
         "bonus_strength": 2,
         "level": 1,
