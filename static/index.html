@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,24 +12,24 @@
         
         <header class="top-bar panel" style="position: relative; padding-bottom: 10px;">
             <div id="guestBlock">
-                <button id="btnLogin">Войти</button>
-                <button id="btnRegister">Регистрация</button>
-                <button id="btnHighScoresGuest" onclick="showHighScores()">🏆 Рекорды</button>
+                <button id="btnLogin">Login</button>
+                <button id="btnRegister">Register</button>
+                <button id="btnHighScoresGuest" onclick="showHighScores()">🏆 High Scores</button>
             </div>
 
             <div id="userBlock" style="display: none; align-items: center; gap: 15px; width: 100%;">
-                <span id="playerName" style="font-weight: bold; color: var(--accent-color); min-width: 100px;">Имя игрока</span>
+                <span id="playerName" style="font-weight: bold; color: var(--accent-color); min-width: 100px;">Player Name</span>
                 
                 <div id="dungeonInfo" style="flex: 1; text-align: center; font-family: 'Courier New', monospace;">
-                    <span style="color: #888;">ЭТАЖ</span> 
+                    <span style="color: #888;">FLOOR</span> 
                     <span id="displayFloor" style="color: #fff; font-weight: bold;">0</span>
                     <span style="margin: 0 10px; color: #444;">•</span>
-                    <span style="color: #888;">КОМНАТА</span> 
+                    <span style="color: #888;">ROOM</span> 
                     <span id="displayRoom" style="color: var(--accent-color); font-weight: bold;">0</span>
                 </div>
 
                 <button id="btnHighScoresUser" onclick="showHighScores()" style="margin-left: auto;">🏆</button>
-                <button id="btnLogout" style="background-color: #ff5555; color: white;">Выйти</button>
+                <button id="btnLogout" style="background-color: #ff5555; color: white;">Logout</button>
             </div>
 
             <div id="progressContainer" style="display: none; position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: rgba(0,0,0,0.3);">
@@ -39,7 +39,7 @@
 
         <aside class="stats-panel panel">
             <div id="statsContent">
-                <p>Загрузка данных...</p>
+                <p>Loading data...</p>
             </div>
         </aside>
 
@@ -57,14 +57,14 @@
         <div id="battleInterface" class="event-overlay"  style="display: none;">
             <div class="battle-arena">
                 <div class="monster-card">
-                    <h2 id="monsterName">Чудовище</h2>
+                    <h2 id="monsterName">Monster</h2>
                     <div class="hp-bar-container">
                         <div id="monsterHpBar" class="hp-bar-fill"></div>
                     </div>
                     <p id="monsterHpText">HP: ??/??</p>
                 </div>
                 <div class="battle-actions">
-                    <button onclick="sendAttack()" class="attack-btn">Ударить мечом</button>
+                    <button onclick="sendAttack()" class="attack-btn">Strike with Sword</button>
                     <div id="spellsActions" class="spells-grid"></div>
                 </div>
             </div>
@@ -72,36 +72,36 @@
     </div>
 
     <div id="restInterface" class="event-overlay" style="display: none;  padding: 15px;  text-align: center; margin: 10px 0;">
-        <h3 style="color: #4caf50;">🏕️ Безопасное место</h3>
-        <p>Вы можете отдохнуть или продолжить путь.</p>
+        <h3 style="color: #4caf50;">🏕️ Safe Place</h3>
+        <p>You can rest or continue your journey.</p>
         
         <div style="display: flex; justify-content: center; gap: 10px;">
             <button onclick="sendRest()" style="background: #4caf50; color: white; padding: 10px; cursor: pointer; border: none; border-radius: 4px;">
-                Отдохнуть (5 🪙)
+                Rest (5 🪙)
             </button>
             
             <button onclick="continueJourney()" style="background: #555; color: white; padding: 10px; cursor: pointer; border: none; border-radius: 4px;">
-                Идти дальше
+                Continue
             </button>
         </div>
     </div>
 
 <div id="shopInterface" class="event-overlay" style="display: none;  padding: 15px;">
-    <h2 style="color: #ffd700; margin-top: 0;">💰 Странствующий торговец</h2>
-    <p>Ваше золото: <span id="shopHeroGold">0</span> 🪙</p>
+    <h2 style="color: #ffd700; margin-top: 0;">💰 Wandering Merchant</h2>
+    <p>Your gold: <span id="shopHeroGold">0</span> 🪙</p>
     
     <div id="shopItemsContainer" style="display: flex;  gap: 10px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap;">
         </div>
 
     <button onclick="continueJourneyFromShop()" style=" margin-top : 24px; background: #555; color: white; padding: 16px 15px; cursor: pointer; border: none; border-radius: 4px;">
-        Уйти из магазина
+        Leave Shop
     </button>
 </div>
 
 
 <div id="eventInterface" class="event-overlay" style="display: flex;   padding: 20px; border: 2px solid ; margin: 10px 0; text-align: center;">
     <h3 id="eventName" style="color: #e040fb; margin-top: 0;">???</h3>
-    <p id="eventDescription" style="font-style: italic; color: #ddd; margin-bottom: 20px;">Описание события...</p>
+    <p id="eventDescription" style="font-style: italic; color: #ddd; margin-bottom: 20px;">Event description...</p>
     
     <div id="eventChoicesContainer" style="display: flex; flex-direction: column; gap: 10px; align-items: center;">
     </div>
@@ -109,16 +109,16 @@
 
         <div id="modalDeath" class="modal" style="display: none; background: rgba(0,0,0,0.9);">
     <div class="modal-content death-theme">
-        <h1 style="color: #ff0000; font-family: 'Georgia', serif; font-size: 3em;">ПОКОЙСЯ С МИРОМ</h1>
+        <h1 style="color: #ff0000; font-family: 'Georgia', serif; font-size: 3em;">REST IN PEACE</h1>
         <hr>
         <p id="deathMessage" style="font-size: 1.2em; margin: 20px 0;"></p>
-        <p>Ваше приключение закончилось. Герой был удален из летописей.</p>
+        <p>Your adventure has ended. The hero has been removed from the chronicles.</p>
         <div style="display: flex; gap: 10px; justify-content: center;">
             <button onclick="location.reload()" style="padding: 15px 30px; cursor: pointer; background: #333; color: white; border: 1px solid #777;">
-                Начать новую историю
+                Start New Story
             </button>
             <button onclick="showHighScores()" style="padding: 15px 30px; cursor: pointer; background: var(--accent-color); color: white; border: none;">
-                Таблица рекордов
+                High Scores
             </button>
         </div>
     </div>
@@ -127,11 +127,11 @@
 <div id="modalHighScores" class="modal">
     <div class="modal-content" style="width: 80%; max-width: 800px; background: #1a1a1a; color: #eee; border: 1px solid var(--accent-color);">
         <span class="close" onclick="document.getElementById('modalHighScores').style.display='none'">&times;</span>
-        <h2 style="color: var(--accent-color); text-align: center;">🏆 ЗАЛ СЛАВЫ 🏆</h2>
+        <h2 style="color: var(--accent-color); text-align: center;">🏆 HALL OF FAME 🏆</h2>
         <div id="highScoresList" style="margin-top: 15px; overflow-x: auto;">
-            <p style="text-align: center;">Загрузка легенд...</p>
+            <p style="text-align: center;">Loading legends...</p>
         </div>
-        <button onclick="document.getElementById('modalHighScores').style.display='none'" style="width: 100%; margin-top: 20px; background: #333; color: #fff;">Закрыть</button>
+        <button onclick="document.getElementById('modalHighScores').style.display='none'" style="width: 100%; margin-top: 20px; background: #333; color: #fff;">Close</button>
     </div>
 </div>
 
@@ -143,45 +143,44 @@
         <section class="log-panel panel">
             
             <div id="logContent" class="log-content">
-                <div class="log-entry">Вы стоите у входа в подземелье...</div>
+                <div class="log-entry">You stand at the entrance of the dungeon...</div>
             </div>
         </section>
-
         
 
     </div> <div id="modalAuth" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h2 id="modalTitle">Вход</h2>
+            <h2 id="modalTitle">Login</h2>
             <div id="authMessage" style="margin-bottom: 15px; font-size: 0.9rem; display: none; padding: 10px; border-radius: 4px;"></div>
             <div class="form-group">
-                <label>Имя пользователя</label>
-                <input type="text" id="authUsername" placeholder="Введите ник...">
+                <label>Username</label>
+                <input type="text" id="authUsername" placeholder="Enter nickname...">
             </div>
             <div class="form-group">
-                <label>Пароль</label>
-                <input type="password" id="authPassword" placeholder="Введите пароль...">
+                <label>Password</label>
+                <input type="password" id="authPassword" placeholder="Enter password...">
             </div>
-            <button id="btnSubmitAuth" style="width: 100%; margin-top: 10px;">Подтвердить</button>
+            <button id="btnSubmitAuth" style="width: 100%; margin-top: 10px;">Confirm</button>
         </div>
     </div>
 
     <div id="modalCreateHero" class="modal">
         <div class="modal-content">
-            <h2>Создать героя</h2>
+            <h2>Create Hero</h2>
             <div class="form-group">
-                <label>Имя героя</label>
-                <input type="text" id="newHeroName" placeholder="Как назовем легенду?">
+                <label>Hero Name</label>
+                <input type="text" id="newHeroName" placeholder="What shall we call the legend?">
             </div>
-            <button id="btnConfirmCreate" style="width: 100%;">Войти в подземелье</button>
+            <button id="btnConfirmCreate" style="width: 100%;">Enter Dungeon</button>
         </div>
     </div>
 
     <div id="modalUpgrade" class="modal">
         <div class="modal-content" style="width: 350px;">
             <span class="close" onclick="document.getElementById('modalUpgrade').style.display='none'">&times;</span>
-            <h2>Прокачка героя</h2>
-            <p>Свободных очков: <b id="availablePoints" style="color: var(--accent-color);">0</b></p>
+            <h2>Hero Upgrade</h2>
+            <p>Available points: <b id="availablePoints" style="color: var(--accent-color);">0</b></p>
             <div id="upgradeList"></div>
             <div id="upgradeMessage" style="margin-top: 10px; font-size: 0.8rem; display: none; padding: 5px; border-radius: 4px;"></div>
         </div>
@@ -189,9 +188,9 @@
 
     <div id="modalLoot" class="modal">
         <div class="modal-content">
-            <h2>Победа!</h2>
+            <h2>Victory!</h2>
             <div id="lootResult"></div>
-            <button onclick="closeLootModal()" style="width: 100%; margin-top: 10px;">Продолжить путь</button>
+            <button onclick="closeLootModal()" style="width: 100%; margin-top: 10px;">Continue Journey</button>
         </div>
     </div>
 
@@ -202,8 +201,8 @@
 
 <div id="modalPickLoot" class="modal">
         <div class="modal-content">
-            <h2>Эпическая добыча!</h2>
-            <p>Выберите одну из наград:</p>
+            <h2>Epic Loot!</h2>
+            <p>Choose one of the rewards:</p>
             <div id="pendingLootContainer" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
                 </div>
         </div>

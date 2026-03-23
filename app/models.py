@@ -13,7 +13,7 @@ class User(SQLModel, table=True):
 
 
 class LootChoice(BaseModel):
-    type: str          # "artifact" или "spell"
+    type: str          # "artifact" or "spell"
     id: int
     name: str
     description: Optional[str] = None
@@ -50,15 +50,15 @@ class Artifact(SQLModel, table=True):
 
 
 
-# --- БАЗОВЫЙ КЛАСС  ---
+# --- BASE CLASS  ---
 class Hero(SQLModel, table=True):
-    # Первичный ключ 
+    # Primary key
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id", unique=True)
     name: str = Field(index=True, unique=True)
     
 
-    # Характеристики
+    # Stats
     strength: int = 10
     dexterity: int = 10
     intelligence: int = 10
@@ -92,7 +92,7 @@ class Hero(SQLModel, table=True):
     
     @property
     def total_dexterity(self) -> int:
-        # Суммируем базу + бонусы от всех артефактов в рюкзаке
+        # Sum base + bonuses from all artifacts in inventory
         bonus = sum(art.bonus_dexterity for art in self.artifacts)
         return self.dexterity + bonus
     
@@ -116,33 +116,33 @@ class Hero(SQLModel, table=True):
     level: int = 1
     xp: int = 0
     gold: int = 0
-    stat_points: int = Field(default=5) # Даем 5 очков на старте
+    stat_points: int = Field(default=5) # Start with 5 points
 
     artifacts: List["Artifact"] = Relationship(back_populates="heroes", link_model=HeroArtifactLink)
     spells: List["Spell"] = Relationship(back_populates="heroes", link_model=HeroSpellLink)
     
-    # Храним ID артефактов в магазине как строку, разделенную запятыми
+    # Store shop artifact IDs as comma-separated string
     current_shop_items: Optional[str] = Field(default=None)
     active_event_id: Optional[int] = Field(default=None, nullable=True)
     fights_without_drop: int = Field(default=0) 
     pending_loot: List[Dict] = Field(default_factory=list, sa_column=Column(JSON))
 
 
-    # ГЕОГРАФИЯ
+    # GEOGRAPHY
     world_seed: int = Field(default_factory=lambda: random.randint(1, 999999))
-    current_room: int = 0  # Этаж (F1, F2...)
-    current_lane: int = 1  # Дорожка (0 - лево, 1 - центр, 2 - право)
+    current_room: int = 0  # Floor (F1, F2...)
+    current_lane: int = 1  # Lane (0 - left, 1 - center, 2 - right)
     active_monster_id: Optional[int] = Field(default=None, nullable=True)
 
 class Monster(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     level: int = Field(default=1)
-    # Характеристики
+    # Stats
     max_hp: int = Field(default=50)
     current_hp: int = Field(default=50)
     flee: Optional[int] = Field(default=10)
-    # Диапазоны для монстров
+    # Monster ranges
     min_attack: int = Field(default=5)
     max_attack: int = Field(default=10)
     min_gold: int = Field(default=1)
@@ -203,7 +203,6 @@ class ArtifactRead(BaseModel):
     max_mp: int 
     
 
-
 class SpellRead(BaseModel):
     id : int
     name: str
@@ -257,11 +256,11 @@ class Encounters(SQLModel, table=True):
     effect_key: str
     rarity: str = Field(default='base') 
 
-    # --- Вариант 1 (ОБЯЗАТЕЛЬНЫЙ) ---
-    choice_1_text: str  # Текст на кнопке (например, "Молиться о силе")
-    choice_1_val: str   # Значение для бэкенда (например, "str")
+    # --- Option 1 (REQUIRED) ---
+    choice_1_text: str  # Button text (e.g., "Pray for strength")
+    choice_1_val: str   # Value for backend (e.g., "str")
 
-    # --- ОПЦИОНАЛЬНЫЕ ВАРИАНТЫ ---
+    # --- OPTIONAL OPTIONS ---
     choice_2_text: Optional[str] = Field(default=None)
     choice_2_val: Optional[str] = Field(default=None)
 

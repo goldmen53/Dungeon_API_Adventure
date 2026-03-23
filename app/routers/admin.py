@@ -26,7 +26,7 @@ router = APIRouter(
 def get_hero_status(name: str, session: Session = Depends(get_session),is_admin: bool = Depends(verify_admin)):
     hero = session.exec(select(Hero).where(Hero.name == name)).first()
     if not hero:
-        raise HTTPException(status_code=404, detail="Герой не найден")
+        raise HTTPException(status_code=404, detail="Hero not found")
     
     return hero 
 
@@ -35,7 +35,7 @@ def get_all_heroes(session: Session = Depends(get_session),is_admin: bool = Depe
     heroes = session.exec(select(Hero)).all()
     
     if not heroes:
-        raise HTTPException(status_code=404, detail="Герои еще не созданы")
+        raise HTTPException(status_code=404, detail="No heroes created yet")
     
     return heroes
 
@@ -45,38 +45,38 @@ def delete_hero(name:str, session: Session = Depends(get_session),is_admin: bool
     hero = session.exec(statement).first()
 
     if not hero:
-        raise HTTPException(status_code=404, detail="Герой не найден в этом подземелье")
-    #удаляем героя
+        raise HTTPException(status_code=404, detail="Hero not found in this dungeon")
+    #delete hero
     session.delete(hero)
-    #подтверждаем удаление
+    #confirm deletion
     session.commit()
     
-    return {'message':f'Герой {name} навсегда покинул подземелье'}
+    return {'message':f'Hero {name} has forever left the dungeon'}
 
 @router.patch("/heroes/{name}")
 def update_hero(name: str, hero_data: HeroUpdate, session: Session = Depends(get_session),is_admin: bool = Depends(verify_admin)):
-    # Ищем героя
+    # Find hero
     db_hero = session.exec(select(Hero).where(Hero.name == name)).first()
     if not db_hero:
-        raise HTTPException(status_code=404, detail="Герой не найден")
+        raise HTTPException(status_code=404, detail="Hero not found")
 
-    # Превращаем присланные данные в словарь, исключая те, что не прислали (None)
+    # Convert sent data to dict, excluding ones not sent (None)
     update_dict = hero_data.dict(exclude_unset=True)
 
     for key, value in update_dict.items():
-        # Базовая логика ограничений (пример для HP)
+        # Basic constraint logic (example for HP)
         if key == "hp":
-            # Не даем упасть ниже 0 и подняться выше макс_хп
+            # Don't let it drop below 0 or rise above max_hp
             value = max(0, min(value, db_hero.max_hp))
         
         if key == "gold":
-            # Золото не может быть отрицательным
+            # Gold cannot be negative
             value = max(0, value)
 
-        # Применяем изменение к объекту
+        # Apply change to object
         setattr(db_hero, key, value)
 
-    # Сохраняем
+    # Save
     session.add(db_hero)
     session.commit()
     session.refresh(db_hero)
@@ -96,31 +96,31 @@ def delete_monster(name:str, session:Session = Depends(get_session),is_admin: bo
     statement = select(Monster).where(Monster.name == name)
     monster = session.exec(statement).first()
     if not monster:
-        raise HTTPException(status_code=404, detail="Такие монстры в этом подземелье не водяться")
-    #удаляем героя
+        raise HTTPException(status_code=404, detail="Such monsters don't exist in this dungeon")
+    #delete monster
     session.delete(monster)
-    #подтверждаем удаление
+    #confirm deletion
     session.commit()
     
-    return {'message':f'Монстр {name} навсегда истреблен и больше не появлеться в этом подземелии '}
+    return {'message':f'Monster {name} has been forever exterminated and will no longer appear in this dungeon'}
 
 @router.patch("/monsters/{name}")
 def update_monster(name: str, monster_data: MonsterUpdate, session: Session = Depends(get_session),is_admin: bool = Depends(verify_admin)):
     
     db_monster = session.exec(select(Monster).where(Monster.name == name)).first()
     if not db_monster:
-        raise HTTPException(status_code=404, detail="Монстр не найден")
+        raise HTTPException(status_code=404, detail="Monster not found")
 
-    # Превращаем присланные данные в словарь, исключая те, что не прислали (None)
+    # Convert sent data to dict, excluding ones not sent (None)
     update_dict = monster_data.dict(exclude_unset=True)
 
     for key, value in update_dict.items():
         if key == "current_hp":
-            # Не даем упасть ниже 0 и подняться выше макс_хп
+            # Don't let it drop below 0 or rise above max_hp
             value = max(0, min(value, db_monster.max_hp))
         
 
-        # Применяем изменение к объекту
+        # Apply change to object
         setattr(db_monster, key, value)
 
     
@@ -131,56 +131,56 @@ def update_monster(name: str, monster_data: MonsterUpdate, session: Session = De
 
 @router.post("/give_artifact")
 def give_artifact(hero_name: str, artifact_id: int, session: Session = Depends(get_session),is_admin: bool = Depends(verify_admin)):
-    # Ищем героя
+    # Find hero
     hero = session.exec(select(Hero).where(Hero.name == hero_name)).first()
     if not hero:
-        raise HTTPException(status_code=404, detail="Герой не найден")
+        raise HTTPException(status_code=404, detail="Hero not found")
     
-    # Ищем артефакт
+    # Find artifact
     artifact = session.get(Artifact, artifact_id)
     if not artifact:
-        raise HTTPException(status_code=404, detail="Артефакт не найден")
+        raise HTTPException(status_code=404, detail="Artifact not found")
 
-    # Проверка: нет ли у героя уже такого предмета
+    # Check: doesn't hero already have this item
     if artifact in hero.artifacts:
-        raise HTTPException(status_code=400, detail="У героя уже есть этот артефакт")
+        raise HTTPException(status_code=400, detail="Hero already has this artifact")
 
-    # ДОБАВЛЯЕМ СВЯЗЬ
-    # Благодаря Relationship и LinkTable
+    # ADD CONNECTION
+    # Thanks to Relationship and LinkTable
     hero.artifacts.append(artifact)
     
     session.add(hero)
     session.commit()
     
     return {
-        "message": f"Артефакт '{artifact.name}' успешно выдан герою {hero.name}",
+        "message": f"Artifact '{artifact.name}' successfully given to hero {hero.name}",
         "current_artifacts": [a.name for a in hero.artifacts]
     }
 
 @router.post("/give_spell")
 def give_spell(hero_name: str, spell_id: int, session: Session = Depends(get_session),is_admin: bool = Depends(verify_admin)):
-    # Ищем героя
+    # Find hero
     hero = session.exec(select(Hero).where(Hero.name == hero_name)).first()
     if not hero:
-        raise HTTPException(status_code=404, detail="Герой не найден")
+        raise HTTPException(status_code=404, detail="Hero not found")
     
-    # Ищем артефакт
+    # Find spell
     spell = session.get(Spell, spell_id)
     if not spell:
-        raise HTTPException(status_code=404, detail="Заклинание не найдено")
+        raise HTTPException(status_code=404, detail="Spell not found")
 
-    # Проверка: нет ли у героя уже такого предмета
+    # Check: doesn't hero already have this spell
     if spell in hero.spells:
-        raise HTTPException(status_code=400, detail="У героя уже есть это заклинание")
+        raise HTTPException(status_code=400, detail="Hero already knows this spell")
 
-    # ДОБАВЛЯЕМ СВЯЗЬ
-    # Благодаря Relationship и LinkTable
+    # ADD CONNECTION
+    # Thanks to Relationship and LinkTable
     hero.spells.append(spell)
     
     session.add(hero)
     session.commit()
     
     return {
-        "message": f"Артефакт '{spell.name}' успешно выдан герою {hero.name}",
+        "message": f"Spell '{spell.name}' successfully given to hero {hero.name}",
         "current_spell": [s.name for s in hero.spells]
-    }   
+    }

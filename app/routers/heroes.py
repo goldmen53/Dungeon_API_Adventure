@@ -19,33 +19,33 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 router = APIRouter(
     prefix="/heroes",
-    tags=["Heroes"] # Группировка в Swagger
+    tags=["Heroes"] # Grouping in Swagger
 )
 
 @router.post("/create")
 def create_hero(
     name: str, 
     session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user) # Получаем юзера из токена
+    current_user: User = Depends(get_current_user) # Get user from token
 ):
-    # Проверяем, нет ли уже такого имени
+    # Check if name already exists
     existing_name = session.exec(select(Hero).where(Hero.name == name)).first()
     if existing_name:
-        raise HTTPException(status_code=400, detail="Это имя уже занято")
+        raise HTTPException(status_code=400, detail="This name is already taken")
 
-    # Проверяем, нет ли уже героя у этого аккаунта 
+    # Check if user already has a hero
     existing_hero = session.exec(select(Hero).where(Hero.user_id == current_user.id)).first()
     if existing_hero:
-        raise HTTPException(status_code=400, detail="У вас уже есть активный герой")
+        raise HTTPException(status_code=400, detail="You already have an active hero")
 
-    # Создаем героя, привязывая его к ID текущего юзера
+    # Create hero, linking to current user ID
     new_hero = Hero(name=name, user_id=current_user.id)
     session.add(new_hero)
     session.commit()
     session.refresh(new_hero)
     
     return {
-        "message": f"Герой {new_hero.name} вошел в подземелье!",
+        "message": f"Hero {new_hero.name} entered the dungeon!",
         "hero_id": new_hero.id,
         "world_seed": new_hero.world_seed,
         "start_position": f"Floor: {new_hero.current_room}, Lane: {new_hero.current_lane}"
@@ -62,16 +62,16 @@ def get_my_hero(hero: Hero = Depends(get_current_hero)):
 def upgrade_stat(stat: str,amount: int,hero: Hero = Depends(get_current_hero), session: Session = Depends(get_session)):
     
     if not hero:
-        raise HTTPException(status_code=404, detail="Герой не найден")
+        raise HTTPException(status_code=404, detail="Hero not found")
     
     if hero.stat_points <= 0:
-        raise HTTPException(status_code=400, detail="У вас нет свободных очков характеристик")
+        raise HTTPException(status_code=400, detail="You have no available stat points")
     
     if amount > hero.stat_points:
-        raise HTTPException(status_code=400, detail="У вас недостаточно очков характеристик")
+        raise HTTPException(status_code=400, detail="Not enough stat points")
     
     if amount <= 0:
-        raise HTTPException(status_code=400, detail="К-во не может быть отрицательным или равным нулю")
+        raise HTTPException(status_code=400, detail="Amount cannot be negative or zero")
     
 
     if stat == "str" and (amount + hero.strength) <=50:
@@ -81,7 +81,7 @@ def upgrade_stat(stat: str,amount: int,hero: Hero = Depends(get_current_hero), s
     
     elif stat == "vit" and (amount + hero.vitality) <=50:
         hero.vitality += amount
-        # Сразу обновляем макс ХП по  формуле 
+        # Immediately update max HP by formula
         hero.hp += (hero.vitality*10)
         if hero.hp > hero.max_hp:
             hero.hp = hero.max_hp
@@ -92,7 +92,7 @@ def upgrade_stat(stat: str,amount: int,hero: Hero = Depends(get_current_hero), s
         hero.dexterity += amount
 
     else:
-        raise HTTPException(status_code=400, detail="Неверная характеристика или характеристика >50")
+        raise HTTPException(status_code=400, detail="Invalid stat or stat > 50")
     
     hero.stat_points -= amount
 
@@ -101,7 +101,7 @@ def upgrade_stat(stat: str,amount: int,hero: Hero = Depends(get_current_hero), s
     session.refresh(hero)
     
     return {
-        "message": f"{stat} успешно увеличена!",
+        "message": f"{stat} successfully increased!",
         "current_stats": {
             "str": hero.strength,
             "agi": hero.agility,
@@ -116,30 +116,30 @@ def upgrade_stat(stat: str,amount: int,hero: Hero = Depends(get_current_hero), s
 def move_hero(target_lane: int,hero: Hero = Depends(get_current_hero),session: Session = Depends(get_session)):
 
     if not hero:
-        raise HTTPException(status_code=404, detail="Герой не найден")
+        raise HTTPException(status_code=404, detail="Hero not found")
 
-    # Сначала ПРОВЕРКА БОЯ (нельзя уйти из текущей комнаты, если там враг)
+    # First, BATTLE CHECK (cannot leave current room if there's an enemy)
     if hero.active_monster_id:
         monster = session.get(Monster, hero.active_monster_id)
         if monster and monster.current_hp > 0:
             raise HTTPException(
                 status_code=400, 
-                detail=f"Вы не можете уйти, пока жив {monster.name}!"
+                detail=f"You cannot leave while {monster.name} is alive!"
             )
 
-    # ПРОВЕРКА ДОРОЖКИ (можно только на соседние)
+    # LANE CHECK (can only move to adjacent lanes)
     allowed_lanes = [hero.current_lane, hero.current_lane - 1, hero.current_lane + 1]
     if target_lane not in allowed_lanes or target_lane not in [0, 1, 2]:
-         raise HTTPException(status_code=400, detail="Недопустимый переход")
+         raise HTTPException(status_code=400, detail="Invalid move")
 
-    #  ШАГ ВПЕРЕД (Меняем координаты ПЕРЕД генерацией типа комнаты)
+    # STEP FORWARD (Change coordinates BEFORE generating room type)
     hero.current_room += 1
     hero.current_lane = target_lane
     
-    # ОПРЕДЕЛЯЕМ ТИП НОВОЙ КОМНАТЫ
+    # DETERMINE NEW ROOM TYPE
     room_type = get_room_type(hero.current_room, hero.current_lane, hero.world_seed)
 
-    # ЛОГИКА СПАВНА
+    # SPAWN LOGIC
     m_params = None
     if room_type == "B" or room_type == "BOSS":
         m_params = create_monster_params(hero.current_room, is_boss=(room_type == "BOSS"))
@@ -154,21 +154,21 @@ def move_hero(target_lane: int,hero: Hero = Depends(get_current_hero),session: S
         all_events = session.exec(select(Encounters)).all()
         if not all_events:
             hero.gold += 10
-            return {"message": "Тут должно было быть событие, но мир пуст. Ты нашел 10 золотых."}
+            return {"message": "There should be an event here, but the world is empty. You found 10 gold."}
 
         selected_event = random.choice(all_events)
         
-        # Блокируем героя
+        # Lock the hero
         hero.active_event_id = selected_event.id
         session.add(hero)
         session.commit()
         
-        # --- ФОРМИРУЕМ МАССИВ КНОПОК ДЛЯ ФРОНТЕНДА ---
+        # --- BUILD BUTTON ARRAY FOR FRONTEND ---
         choices = []
-        # Вариант 1 всегда есть
+        # Option 1 always exists
         choices.append({"text": selected_event.choice_1_text, "value": selected_event.choice_1_val})
         
-        # Проверяем опциональные
+        # Check optional ones
         if selected_event.choice_2_text and selected_event.choice_2_val:
             choices.append({"text": selected_event.choice_2_text, "value": selected_event.choice_2_val})
         if selected_event.choice_3_text and selected_event.choice_3_val:
@@ -182,11 +182,11 @@ def move_hero(target_lane: int,hero: Hero = Depends(get_current_hero),session: S
             "type": "event",
             "event_name": selected_event.name,
             "description": selected_event.description,
-            "choices": choices  # Отдаем готовый массив вариантов!
+            "choices": choices
         }
 
 
-    #логика обовления магазина. При каждом шаге сбрасывем магазин и генерируем заново
+    #Shop update logic. Reset shop and regenerate on each step
     hero.current_shop_items = None
 
     session.add(hero)
@@ -194,7 +194,7 @@ def move_hero(target_lane: int,hero: Hero = Depends(get_current_hero),session: S
     session.refresh(hero)
     
     return {
-        "event": "Вы встретили врага!" if hero.active_monster_id else "Вы вошли в мирную зону",
+        "event": "You encountered an enemy!" if hero.active_monster_id else "You entered a peaceful zone",
         "current_floor": hero.current_room,
         "room_type": room_type,
         "monster": m_params
@@ -204,12 +204,12 @@ def move_hero(target_lane: int,hero: Hero = Depends(get_current_hero),session: S
 def get_hero_map(hero: Hero = Depends(get_current_hero), session: Session = Depends(get_session)):   
     
     visible_map = []
-    # Показываем текущий этаж 
+    # Show current floor
     if hero.current_room < 11:
         map = 0
     else:
         map = (hero.current_room //10 )*10
-    #уникальный спагети код для отрисовки 0 этажа возможно потом убрать 
+    # Unique spaghetti code for floor 0 rendering, maybe remove later
     if hero.current_room < 11:
         for f in range( map,map+11 ):
             floor_data = {

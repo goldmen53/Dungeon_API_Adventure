@@ -27,60 +27,60 @@ router = APIRouter(
 @router.post("/attack")
 def attack_monster(hero: Hero = Depends(get_current_hero), session: Session = Depends(get_session)):
     if not hero or not hero.active_monster_id:
-        raise HTTPException(status_code=400, detail="У вас нет активного противника")
+        raise HTTPException(status_code=400, detail="You have no active opponent")
 
     monster = session.get(Monster, hero.active_monster_id)
     if not monster or monster.current_hp <= 0:
         hero.active_monster_id = None
         session.add(hero)
         session.commit()
-        raise HTTPException(status_code=400, detail="Противник уже повержен")
+        raise HTTPException(status_code=400, detail="Opponent already defeated")
 
-    # --- ХОД ГЕРОЯ ---
+    # --- HERO TURN ---
     hero_damage = random.randint(10+hero.total_strength, 10+ hero.total_strength + hero.total_dexterity)
     log = []
 
     if random.random() <= hero.total_crit/100: 
         damage = hero_damage * 2
-        log.append(f"Критический удар! Вы ударили {monster.name} на {damage} урона.")
+        log.append(f"Critical hit! You hit {monster.name} for {damage} damage.")
     else:
         damage = hero_damage
-        log.append(f"Вы ударили {monster.name} на {damage} урона.")
+        log.append(f"You hit {monster.name} for {damage} damage.")
     
     monster.current_hp -= damage
 
-    # Эффекты артефактов
+    # Artifact effects
     for art in hero.artifacts:
         handler = BATTLE_EFFECTS.get(art.effect_key)
         if handler:
             effect_msg = handler(hero, monster, damage) 
             if effect_msg: log.append(effect_msg)
 
-    # ПРОВЕРКА СМЕРТИ МОНСТРА
+    # MONSTER DEATH CHECK
     if monster.current_hp <= 0:
         reward_message = give_monster_rewards(hero, monster, session)
         session.delete(monster)
-        hero.active_monster_id = None # Важно очистить ID у героя
+        hero.active_monster_id = None # Important to clear ID for hero
         session.add(hero)
         session.commit()
         
-        log.append(f"{monster.name} убит! Вы получили {reward_message}")
+        log.append(f"{monster.name} killed! You received {reward_message}")
         return {"status": "victory", "log": log, "hero": hero}
 
-    # --- ХОД МОНСТРА ---
+    # --- MONSTER TURN ---
     if random.random() > hero.total_flee/100: 
         monster_damage = random.randint(monster.min_attack, monster.max_attack)
         hero.hp -= monster_damage
-        log.append(f"{monster.name} атакует вас на {monster_damage} урона.")
+        log.append(f"{monster.name} attacks you for {monster_damage} damage.")
     else:
-        log.append(f"{monster.name} промахнулся!")
+        log.append(f"{monster.name} missed!")
 
-    # ПРОВЕРКА СМЕРТИ ГЕРОЯ
+    # HERO DEATH CHECK
     if hero.hp <= 0:
         hero_name = hero.name
         user = session.get(User, hero.user_id)
         highscore = HighScore(
-            username=user.username if user else "Аноним",
+            username=user.username if user else "Anonymous",
             hero_name=hero.name,
             level=hero.level,
             floor=hero.current_room,
@@ -90,15 +90,15 @@ def attack_monster(hero: Hero = Depends(get_current_hero), session: Session = De
         session.add(highscore)
         session.delete(hero)
         session.commit()
-        return {"status": "defeat", "log": log + ["ВЫ ПОГИБЛИ..."], "hero_name": hero_name}
+        return {"status": "defeat", "log": log + ["YOU DIED..."], "hero_name": hero_name}
 
-    # ЕСЛИ ВСЕ ЖИВЫ — БОЙ ПРОДОЛЖАЕТСЯ
+    # IF EVERYONE IS ALIVE — BATTLE CONTINUES
     session.add(monster)
     session.add(hero)
     session.commit()
 
     return {
-        "status": "ongoing",  # ИСПРАВЛЕНО: было "victory"
+        "status": "ongoing",
         "log": log,
         "hero_hp": f"{hero.hp}/{hero.max_hp}",
         "monster_hp": f"{monster.current_hp}/{monster.max_hp}"
@@ -109,24 +109,24 @@ def attack_monster(hero: Hero = Depends(get_current_hero), session: Session = De
 def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero = Depends(get_current_hero)):
     monster = session.get(Monster, hero.active_monster_id) if hero.active_monster_id else None
     if not hero:
-        raise HTTPException(status_code=404, detail="Герой не найден")
+        raise HTTPException(status_code=404, detail="Hero not found")
     
     spell = session.get(Spell, spell_id)
     if not spell:
-        raise HTTPException(status_code=404, detail="Заклинание не найдено")
+        raise HTTPException(status_code=404, detail="Spell not found")
     
-    #  знает ли герой этот спелл
+    # Does hero know this spell
     if spell not in hero.spells:
-         raise HTTPException(status_code=400, detail="Герой не знает этого заклинания")
+         raise HTTPException(status_code=400, detail="Hero doesn't know this spell")
 
-    #  Хватает ли маны
+    # Enough mana?
     if hero.mp < spell.mp_cost:
-        raise HTTPException(status_code=400, detail="Недостаточно маны!")
+        raise HTTPException(status_code=400, detail="Not enough mana!")
     
     log=[]
 
 
-    # Эффекты артефактов
+    # Artifact effects
     for art in hero.artifacts:
         handler_art = BATTLE_EFFECTS.get(art.effect_key)
         if handler_art:
@@ -136,37 +136,37 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
 
     handler = SPELLS_EFFECTS.get(spell.effect_key)
     if handler:
-        # Тратим ману перед кастом
+        # Spend mana before casting
         hero.mp -= spell.mp_cost
         
-        # Передаем сессию, героя и, возможно, монстра (если идет бой)
+        # Pass session, hero, and possibly monster (if battle ongoing)
         log = [handler(hero, session)] 
 
-    # Проверка смерти монстра
+    # Monster death check
     if monster.current_hp <= 0:
         reward_message = give_monster_rewards(hero, monster, session)
         session.delete(monster)
-        session.commit() # Удалили и сохранили
+        session.commit()
         
         return {
             "status": "victory", 
-            "log": log + [f"Победа! {reward_message}"], 
+            "log": log + [f"Victory! {reward_message}"], 
             "hero": hero
         }
     
-    # --- ХОД МОНСТРА В ОТВЕТ ---
+    # --- MONSTER TURN IN RESPONSE ---
     if random.random() > hero.total_flee/100: 
         monster_damage = random.randint(monster.min_attack, monster.max_attack)
         hero.hp -= monster_damage
-        log.append(f"{monster.name} атакует вас на {monster_damage} урона.")
+        log.append(f"{monster.name} attacks you for {monster_damage} damage.")
     else:
-        log.append(f"{monster.name} промахнулся!")
+        log.append(f"{monster.name} missed!")
 
     if hero.hp <= 0:
         hero_name = hero.name
         user = session.get(User, hero.user_id)
         highscore = HighScore(
-            username=user.username if user else "Аноним",
+            username=user.username if user else "Anonymous",
             hero_name=hero.name,
             level=hero.level,
             floor=hero.current_room,
@@ -176,17 +176,17 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
         session.add(highscore)
         session.delete(hero)
         session.commit()
-        return {"status": "defeat", "log": log + ["Вы погибли!"], "hero_name": hero_name}
+        return {"status": "defeat", "log": log + ["You died!"], "hero_name": hero_name}
 
-    # ЕСЛИ ВСЕ ЖИВЫ
+    # IF EVERYONE IS ALIVE
     session.add(monster)
     session.add(hero)
     session.commit()
     session.refresh(hero)
 
-    # Формируем полные данные героя для фронтенда
-    hero_data = hero.model_dump() # Получаем базовые поля
-    # Добавляем вычисляемые свойства вручную
+    # Build complete hero data for frontend
+    hero_data = hero.model_dump()
+    # Manually add computed properties
     hero_data.update({
         "max_hp": hero.max_hp,
         "total_strength": hero.total_strength,
@@ -201,7 +201,6 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
     return {
         "status": "ongoing",
         "log": log,
-        "hero": hero_data, # Отправляем расширенный объект
+        "hero": hero_data,
         "monster_hp": f"{monster.current_hp}/{monster.max_hp}"
     }
-    

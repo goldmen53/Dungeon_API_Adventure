@@ -3,24 +3,24 @@
  */
 
 
-// --- 1. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И КОНСТАНТЫ ---
-let isGlobalBattleLock = false; // Блокировка интерфейса картой
+// --- 1. GLOBAL VARIABLES AND CONSTANTS ---
+let isGlobalBattleLock = false; // Map interface lock
 
 const roomNames = { 
-    "B": "Бой", 
-    "BOSS": "Главарь", 
-    "E": "Событие", 
-    "R": "Отдых", 
-    "S": "Магазин" 
+    "B": "Battle", 
+    "BOSS": "Boss", 
+    "E": "Event", 
+    "R": "Rest", 
+    "S": "Shop" 
 };
 let currentHeroCache = null;
 
-// Элементы интерфейса
+// Interface elements
 const modalAuth = document.getElementById("modalAuth");
 const btnSubmitAuth = document.getElementById("btnSubmitAuth");
 const closeAuthBtn = document.querySelector(".close");
 
-// --- 2. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
+// --- 2. HELPER FUNCTIONS ---
 
 function addLog(message) {
     const logContent = document.getElementById('logContent');
@@ -41,7 +41,7 @@ function showAuthMessage(text, isError = true) {
     msgDiv.style.color = isError ? '#ff5555' : '#55ff55';
 }
 
-// --- 3. ЛОГИКА ГЕРОЯ ---
+// --- 3. HERO LOGIC ---
 
 async function loadHeroData() {
     const token = localStorage.getItem('token');
@@ -56,10 +56,10 @@ async function loadHeroData() {
             const hero = await response.json();
             currentHeroCache = hero;
 
-            updateNavigationUI(hero.current_room); // Обновляем Этаж/Комнату
+            updateNavigationUI(hero.current_room); // Update Floor/Room
             renderStats(hero);
 
-            // НОВОЕ: ПРОВЕРКА НА ЛУТ
+            // NEW: CHECK FOR LOOT
             if (hero.pending_loot && hero.pending_loot.length > 0) {
                 showPickLootModal(hero.pending_loot);
             }
@@ -70,15 +70,15 @@ async function loadHeroData() {
             currentHeroCache = null;
             document.getElementById('statsContent').innerHTML = `
                 <div class="panel-notice">
-                    <p>У вас еще нет героя или он пал в бою.</p>
-                    <button onclick="window.openCreateHeroModal()" class="primary-btn">Создать героя</button>
+                    <p>You don't have a hero yet or they fell in battle.</p>
+                    <button onclick="window.openCreateHeroModal()" class="primary-btn">Create Hero</button>
                 </div>
             `;
             const controls = document.getElementById('movementControls');
             if (controls) controls.innerHTML = "";
         }
     } catch (error) {
-        console.error("Критическая ошибка загрузки:", error);
+        console.error("Critical load error:", error);
     }
 }
 
@@ -88,15 +88,15 @@ function renderStats(hero) {
 
     const artifactsHtml = (hero.artifacts || []).map(art => 
         `<span class="item-tag rarity-${art.rarity}" title="${art.description}">${art.name}</span>`
-    ).join(' ') || '<span style="color: #666;">Пусто</span>';
+    ).join(' ') || '<span style="color: #666;">Empty</span>';
 
     const spellsHtml = (hero.spells || []).map(spell => 
         `<span class="item-tag rarity-${spell.rarity}" title="${spell.description}">${spell.name}</span>`
-    ).join(' ') || '<span style="color: #666;">Нет заклинаний</span>';
+    ).join(' ') || '<span style="color: #666;">No spells</span>';
 
     content.innerHTML = `
-        <div class="stat-line"><span>Имя:</span> <b>${hero.name}</b></div>
-        <div class="stat-line"><span>Уровень:</span> <span>${hero.level}</span></div>
+        <div class="stat-line"><span>Name:</span> <b>${hero.name}</b></div>
+        <div class="stat-line"><span>Level:</span> <span>${hero.level}</span></div>
         <div class="stat-line"><span>XP:</span> <span>${hero.xp}/100</span></div>
         <div class="stat-line"><span>HP:</span> <span style="color: #ff5555;">${hero.hp}/${hero.max_hp}</span></div>
         <div class="stat-line"><span>SP:</span> <span style="color: #3434eb;">${hero.mp}/${hero.max_mp}</span></div>
@@ -157,18 +157,18 @@ function renderStats(hero) {
 
                         <div style="margin-top:10px; border-top: 1px solid #444; padding-top:25px;">
                                 <div style="margin-top:10px;">
-                                <div style="font-size: 0.8rem; color: var(--accent-color); margin-bottom: 5px;">Артефакты:</div>
+                                <div style="font-size: 0.8rem; color: var(--accent-color); margin-bottom: 5px;">Artifacts:</div>
                                 <div class="items-container">${artifactsHtml}</div>
                             </div>
 
                             <div style="margin-top:10px;">
-                                <div style="font-size: 0.8rem; color: var(--accent-color); margin-bottom: 5px;">Заклинания:</div>
+                                <div style="font-size: 0.8rem; color: var(--accent-color); margin-bottom: 5px;">Spells:</div>
                                 <div class="items-container">${spellsHtml}</div>
                             </div>
     `;
 }
 
-// --- 4. ЛОГИКА КАРТЫ ---
+// --- 4. MAP LOGIC ---
 
 async function updateMap() {
     if (isGlobalBattleLock) return;
@@ -202,7 +202,7 @@ async function updateMap() {
         
         const currentRoomType = data.hero_position ? data.hero_position.room_type : null;
 
-        // Скрываем всё по умолчанию
+        // Hide everything by default
         if (restUI) restUI.style.display = 'none';
         if (shopUI) shopUI.style.display = 'none';
         if (movementUI) movementUI.style.display = 'flex';
@@ -213,54 +213,54 @@ async function updateMap() {
             if (movementUI) movementUI.style.display = 'none';
         } 
         else if (currentRoomType === "S") {
-            // МЫ В МАГАЗИНЕ
+            // WE'RE IN SHOP
             if (shopUI) shopUI.style.display = 'flex';
             if (movementUI) movementUI.style.display = 'none';
-            loadShopCatalog(); // Загружаем товары с бэкенда  
+            loadShopCatalog(); // Load items from backend  
         }
 
         else if (currentRoomType === "E") {
             if (eventUI) eventUI.style.display = 'flex';
             if (movementUI) movementUI.style.display = 'none';
-            // Перекладываем всю проверку на саму функцию загрузки ивента
+            // Delegate all checks to the event loading function itself
             loadCurrentEvent();
         }
 
         const currentFloor = data.hero_position.floor;
         const currentLane = data.hero_position.lane;
 
-        // 1. Вычисляем номер следующего этажа (зацикливаем после 10)
-        // Если currentFloor = 10, то (10 % 10) + 1 = 1
+        // 1. Calculate next floor number (loop after 10)
+        // If currentFloor = 10, then (10 % 10) + 1 = 1
         let nextFloorNum = (currentFloor % 10) + 1;
 
-        // 2. Ищем данные в map_preview
-        // Проверяем оба формата: и число 1, и строку "F1"
+        // 2. Search data in map_preview
+        // Check both formats: number 1 and string "F1"
         let nextFloorData = data.map_preview.find(f => 
             f.floor === `F${nextFloorNum}` || 
             f.floor === nextFloorNum ||
-            f.floor === `F${currentFloor + 1}` // на случай, если этажей больше 10
+            f.floor === `F${currentFloor + 1}` // in case there are more than 10 floors
         );
 
-        // 3. Защита: если мы на БОССЕ и данные следующего этажа всё равно не нашлись
+        // 3. Protection: if we're on BOSS and next floor data still not found
         if (!nextFloorData && data.hero_position.room_type === "BOSS") {
-            addLog("Путь свободен! Переход на новый цикл...");
-            // Создаем виртуальный переход на 1-й этаж в центральную линию
+            addLog("Path is clear! Transition to new cycle...");
+            // Create virtual transition to floor 1 in center lane
             nextFloorData = { lanes: { "Center (1)": "B" } }; 
         }
 
-        // 4. Отрисовка
+        // 4. Rendering
         if (nextFloorData) {
             renderMovementButtons(currentLane, nextFloorData.lanes);
         } else {
-            console.error("Не удалось найти путь дальше!");
-            // Если совсем всё пропало, даем кнопку "В начало" вручную
+            console.error("Could not find path forward!");
+            // If everything is lost, give "Return to start" button manually
             const container = document.getElementById('movementControls');
-            container.innerHTML = `<button class="move-btn" onclick="moveHero(1)">В начало пути</button>`;
+            container.innerHTML = `<button class="move-btn" onclick="moveHero(1)">Start Path</button>`;
         }
 
         renderMovementButtons(currentLane, nextFloorData.lanes);
     } catch (error) {
-        console.error("Ошибка обновления карты:", error);
+        console.error("Map update error:", error);
     }
 }
 
@@ -276,17 +276,17 @@ window.sendRest = async function() {
         
         if (response.ok) {
             addLog(`✅ ${data.message}`);
-            // Обновляем статы (HP и Золото), чтобы игрок видел результат
+            // Update stats (HP and Gold) so player sees result
             await loadHeroData(); 
         } else {
-            addLog(`❌ Ошибка: ${data.detail}`);
+            addLog(`❌ Error: ${data.detail}`);
         }
     } catch (e) {
-        console.error("Ошибка при отдыхе:", e);
+        console.error("Rest error:", e);
     }
 };
 
-// Заодно сделаем то же самое для кнопки "Идти дальше"
+// Same for "Continue" button
 window.continueJourney = function() {
     const restUI = document.getElementById('restInterface');
     const movementUI = document.getElementById('movementControls');
@@ -294,7 +294,7 @@ window.continueJourney = function() {
     if (restUI && movementUI) {
         restUI.style.display = 'none';
         movementUI.style.display = 'block';
-        addLog("⛺ Вы свернули лагерь и продолжили путь.");
+        addLog("⛺ You broke camp and continued your journey.");
     }
 };
 
@@ -311,7 +311,7 @@ window.loadShopCatalog = async function() {
         container.innerHTML = '';
 
         if (data.items_for_sale.length === 0) {
-            container.innerHTML = "<p>Товары закончились.</p>";
+            container.innerHTML = "<p>Goods are sold out.</p>";
             return;
         }
 
@@ -321,11 +321,11 @@ window.loadShopCatalog = async function() {
             itemDiv.innerHTML = `
                 <div style="font-weight: bold; margin-top: 10px;">${item.name}</div>
                 <div style="color: #ffd700;">${item.cost} 🪙 </div>
-                <button onclick="buyItem(${item.id})" style="margin-top: 5px; flex-end; cursor: pointer;">Купить</button>
+                <button onclick="buyItem(${item.id})" style="margin-top: 5px; flex-end; cursor: pointer;">Buy</button>
             `;
             container.appendChild(itemDiv);
         });
-    } catch (e) { console.error("Ошибка загрузки магазина:", e); }
+    } catch (e) { console.error("Shop load error:", e); }
 };
 
 function updateNavigationUI(totalRooms) {
@@ -339,23 +339,23 @@ function updateNavigationUI(totalRooms) {
     const progressElem = document.getElementById('floorProgressBar');
     const progressContainer = document.getElementById('progressContainer');
 
-    // Показываем контейнер полоски
+    // Show progress bar container
     if (progressContainer) progressContainer.style.display = 'block';
 
     if (floorElem && roomElem) {
         floorElem.textContent = floor;
-        // Если комната 0 и мы прошли хоть одну комнату — это 10-я (Босс)
+        // If room 0 and we passed at least one room - this is 10th (Boss)
         const isBoss = (room === 0 && totalRooms > 0);
-        roomElem.textContent = isBoss ? "10 (БОСС)" : room;
+        roomElem.textContent = isBoss ? "10 (BOSS)" : room;
         roomElem.style.color = isBoss ? "#ff4444" : "var(--accent-color)";
     }
 
     if (progressElem) {
-        // Расчет процентов
+        // Calculate percentage
         let percentage = (room === 0 && totalRooms > 0) ? 100 : (room / 10) * 100;
         progressElem.style.width = percentage + "%";
 
-        // Меняем цвет на красный только если это Босс, иначе — основной акцентный
+        // Change color to red only if Boss, otherwise - main accent
         if (room === 0 && totalRooms > 0) {
             progressElem.style.backgroundColor = "#ff4444";
             progressElem.style.boxShadow = "0 0 15px #ff4444";
@@ -377,18 +377,18 @@ window.buyItem = async function(itemId) {
 
         if (response.ok) {
             addLog(`💰 ${data.message}`);
-            await loadHeroData();     // Обновляем статы (золото)
-            await loadShopCatalog();  // Перерисовываем товары (чтобы купленный исчез)
+            await loadHeroData();     // Update stats (gold)
+            await loadShopCatalog();  // Redraw items (so purchased disappears)
         } else {
-            addLog(`❌ Ошибка магазина: ${data.detail}`);
+            addLog(`❌ Shop error: ${data.detail}`);
         }
-    } catch (e) { console.error("Ошибка покупки:", e); }
+    } catch (e) { console.error("Purchase error:", e); }
 };
 
 window.continueJourneyFromShop = function() {
     document.getElementById('shopInterface').style.display = 'none';
     document.getElementById('movementControls').style.display = 'block';
-    addLog("Вы попрощались с торговцем и пошли дальше.");
+    addLog("You said goodbye to the merchant and moved on.");
 };
 
 
@@ -396,9 +396,9 @@ function renderMovementButtons(currentLane, nextLanes) {
     const controls = document.getElementById('movementControls');
     controls.innerHTML = ''; 
     const directions = [
-        { label: "Влево", lane: currentLane - 1 },
-        { label: "Прямо", lane: currentLane },
-        { label: "Вправо", lane: currentLane + 1 }
+        { label: "Left", lane: currentLane - 1 },
+        { label: "Center", lane: currentLane },
+        { label: "Right", lane: currentLane + 1 }
     ];
     const laneKeys = ["Left (0)", "Center (1)", "Right (2)"];
 
@@ -435,41 +435,41 @@ async function moveHero(targetLane) {
                 updateMonsterUI(`${currentHp}/${data.monster.max_hp}`);
             }
             
-            addLog(`Вы вошли в комнату. ${data.event || ""}`);
+            addLog(`You entered the room. ${data.event || ""}`);
             await loadHeroData();
             await updateMap(); 
         } else {
             
             if (response.status === 400) {
-                addLog(`Путь прегражден: ${data.detail}`);
-                // ПРИНУДИТЕЛЬНО освежаем данные героя, чтобы включился режим боя
+                addLog(`Path blocked: ${data.detail}`);
+                // FORCE refresh hero data to enable battle mode
                 await loadHeroData(); 
             } else {
-                addLog(`Ошибка: ${data.detail}`);
+                addLog(`Error: ${data.detail}`);
             }
         }
     } catch (e) { 
-        console.error("Ошибка перемещения:", e); 
+        console.error("Movement error:", e); 
     }
 }
 
-// --- 5. ЛОГИКА БОЯ ---
+// --- 5. BATTLE LOGIC ---
 
 function showDeathScreen(heroName) {
     const modal = document.getElementById('modalDeath');
     const msg = document.getElementById('deathMessage');
     if (modal && msg) {
-        msg.textContent = `Герой ${heroName} пал смертью храбрых в битве с чудовищем.`;
+        msg.textContent = `Hero ${heroName} fell bravely in battle with the monster.`;
         modal.style.display = 'block';
         
-        // Закрываем другие окна
+        // Close other windows
         if (typeof modalAuth !== 'undefined') modalAuth.style.display = "none";
         const lootModal = document.getElementById('modalLoot');
         if (lootModal) lootModal.style.display = 'none';
         
-        // ОЧИЩАЕМ ТОЛЬКО ДАННЫЕ ГЕРОЯ, НО НЕ АККАУНТ
-        // localStorage.removeItem('heroData'); // Если ты хранишь кэш героя отдельно
-        // Токен НЕ ТРОГАЕМ, чтобы не разлогинило
+        // Clear ONLY hero data, NOT account
+        // localStorage.removeItem('heroData'); // If you store hero cache separately
+        // DON'T touch token to avoid logging out
     }
 }
 
@@ -477,13 +477,13 @@ function showBattleMode(isBattle) {
     const battleUI = document.getElementById('battleInterface');
     const navigationUI = document.getElementById('navigationBlock');
     
-    isGlobalBattleLock = isBattle; // Устанавливаем блокировку
+    isGlobalBattleLock = isBattle; // Set lock
 
     if (isBattle) {
         battleUI.style.display = 'block';
         navigationUI.style.display = 'none';
         renderBattleSpells();
-        // ... твой код отрисовки монстра ...
+        // ... your monster rendering code ...
     } else {
         battleUI.style.display = 'none';
         navigationUI.style.display = 'block';
@@ -497,16 +497,16 @@ function updateMonsterUI(hpData) {
     
     let current, max;
     
-    // Если передали строку "5/10"
+    // If passed string "5/10"
     if (typeof hpData === 'string' && hpData.includes('/')) {
         [current, max] = hpData.split('/').map(Number);
     } 
-    // Если передали просто текущее ХП, а макс ХП берем из кеша
+    // If passed just current HP, max HP from cache
     else if (currentHeroCache && currentHeroCache.active_monster) {
         current = Number(hpData);
         max = currentHeroCache.active_monster.max_hp;
     } else {
-        return; // Недостаточно данных для обновления
+        return; // Not enough data to update
     }
 
     const percent = Math.max(0, (current / max) * 100);
@@ -521,13 +521,13 @@ function renderBattleSpells() {
     const container = document.getElementById('spellsActions');
     if (!container || !currentHeroCache) return;
     
-    container.innerHTML = ''; // Очищаем старые кнопки
+    container.innerHTML = ''; // Clear old buttons
 
-    // Берем массив заклинаний из кеша героя
+    // Get spells array from hero cache
     const spells = currentHeroCache.spells || [];
 
     if (spells.length === 0) {
-        container.innerHTML = '<p style="font-size: 0.8rem; color: #666;">Нет изученных заклинаний</p>';
+        container.innerHTML = '<p style="font-size: 0.8rem; color: #666;">No spells learned</p>';
         return;
     }
 
@@ -535,7 +535,7 @@ function renderBattleSpells() {
         const btn = document.createElement('button');
         btn.className = 'spell-btn';
         
-        // Проверяем, хватает ли маны
+        // Check if enough mana
         const canCast = currentHeroCache.mp >= spell.mp_cost;
         
         btn.innerHTML = `
@@ -546,7 +546,7 @@ function renderBattleSpells() {
         btn.disabled = !canCast;
         btn.title = spell.description || "";
 
-        // При клике вызываем функцию каста
+        // On click call cast function
         btn.onclick = () => sendCast(spell.id);
         
         container.appendChild(btn);
@@ -563,45 +563,45 @@ async function sendAttack() {
         
         const data = await response.json();
 
-        // 1. Выводим логи в общий чат логов
+        // 1. Output logs to general chat
         if (data.log) data.log.forEach(msg => addLog(msg));
 
-        // 2. СМЕРТЬ ГЕРОЯ
+        // 2. HERO DEATH
         if (data.status === "defeat") {
-            showDeathScreen(data.hero_name || "Ваш герой");
+            showDeathScreen(data.hero_name || "Your hero");
             return;
         }
 
-        // 3. ПОБЕДА НАД МОНСТРОМ
+        // 3. VICTORY OVER MONSTER
         if (data.status === "victory") {
             updateMonsterUI("0/1"); 
-            // Сбрасываем текст врага
-            document.getElementById('monsterName').textContent = "Враг"; 
+            // Reset enemy text
+            document.getElementById('monsterName').textContent = "Enemy"; 
             document.getElementById('monsterHpText').textContent = "HP: 0/0";
 
-            showBattleMode(false); // Прячем кнопки боя
+            showBattleMode(false); // Hide battle buttons
             
-            // Показываем модалку лута (только при победе!)
-            const victoryMsg = data.log ? data.log[data.log.length - 1] : "Победа!";
+            // Show loot modal (only on victory!)
+            const victoryMsg = data.log ? data.log[data.log.length - 1] : "Victory!";
             showLootModal(victoryMsg);
             
-            await loadHeroData(); // Обновляем золото/опыт в интерфейсе
+            await loadHeroData(); // Update gold/XP in UI
             return;
         }
 
-        // 4. БОЙ ПРОДОЛЖАЕТСЯ (ongoing)
+        // 4. BATTLE CONTINUES (ongoing)
         if (data.status === "ongoing") {
             updateMonsterUI(data.monster_hp);
-            // Если в ответе есть данные героя, обновляем его полоску HP
+            // If hero data in response, update their HP bar
             if (data.hero_hp) {
-                // Предположим, у вас есть функция renderStats или аналогичная
+                // Assuming you have renderStats or similar function
                 await loadHeroData(); 
             }
         }
 
     } catch (e) { 
-        console.error("Ошибка атаки:", e); 
-        addLog("Ошибка соединения с сервером");
+        console.error("Attack error:", e); 
+        addLog("Server connection error");
     }
 }
 async function sendCast(spellId) {
@@ -614,21 +614,21 @@ async function sendCast(spellId) {
         
         const data = await response.json();
 
-        // 1. Логи боя (урон, промахи) — пишем всегда в общий лог игры
+        // 1. Battle logs (damage, misses) — always write to general game log
         if (data.log) {
             data.log.forEach(msg => addLog(msg));
         }
 
-        // 2. Смерть героя — показываем траурное окно
+        // 2. Hero death — show mourning window
         if (data.status === "defeat") {
-            showDeathScreen(data.hero_name || "Ваш герой");
+            showDeathScreen(data.hero_name || "Your hero");
             return; 
         }
 
         if (response.ok) {
-            // 3. Обновляем статы героя (мана потратилась, хп убавилось)
+            // 3. Update hero stats (mana spent, HP decreased)
             if (data.hero) {
-                // Сохраняем кеш спеллов/артефактов
+                // Keep spell/artifacts cache
                 if ((!data.hero.spells || data.hero.spells.length === 0) && currentHeroCache.spells) {
                     data.hero.spells = currentHeroCache.spells;
                 }
@@ -636,29 +636,29 @@ async function sendCast(spellId) {
                 renderStats(currentHeroCache);
             }
 
-            // 4. РЕАЛЬНАЯ ПОБЕДА
+            // 4. REAL VICTORY
             if (data.status === "victory") {
                 updateMonsterUI("0/1"); 
-                showBattleMode(false); // Прячем интерфейс боя
+                showBattleMode(false); // Hide battle interface
                 
-                // Показываем окно лута ТОЛЬКО ТУТ
-                const victoryMsg = data.log ? data.log[data.log.length - 1] : "Победа!";
+                // Show loot window ONLY HERE
+                const victoryMsg = data.log ? data.log[data.log.length - 1] : "Victory!";
                 showLootModal(victoryMsg);
                 
                 await loadHeroData();
-                return; // Выходим из функции
+                return; // Exit function
             }
 
-            // 5. БОЙ ПРОДОЛЖАЕТСЯ
-            // Если мы здесь — значит никто не умер. Просто обновляем HP полоски.
+            // 5. BATTLE CONTINUES
+            // If we're here - nobody died. Just update HP bars.
             if (data.monster_hp) {
                 updateMonsterUI(data.monster_hp);
             }
             
-            renderBattleSpells(); // Обновляем кнопки (вдруг мана кончилась)
+            renderBattleSpells(); // Update buttons (in case mana ran out)
         }
     } catch (e) { 
-        console.error("Ошибка каста:", e); 
+        console.error("Cast error:", e); 
     }
 }
 
@@ -670,18 +670,18 @@ function updateDungeonUI(floor, type) {
 
     floorElem.textContent = floor;
 
-    // Маппинг типов из твоего Python кода
+    // Type mapping from your Python code
     const typeNames = {
-        'B': 'СКЛЕП (БИТВА)',
-        'S': 'ЛАВКА КУПЦА',
-        'R': 'ПРИВАЛ',
-        'E': 'НЕИЗВЕСТНОСТЬ',
-        'BOSS': 'ЗАЛ БОССА'
+        'B': 'CRYPT (BATTLE)',
+        'S': 'MERCHANT SHOP',
+        'R': 'REST',
+        'E': 'UNKNOWN',
+        'BOSS': 'BOSS HALL'
     };
 
-    typeElem.textContent = typeNames[type] || 'ИССЛЕДОВАНИЕ';
+    typeElem.textContent = typeNames[type] || 'EXPLORATION';
     
-    // Опционально: меняем цвет в зависимости от опасности
+    // Optionally: change color based on danger
     if (type === 'BOSS') typeElem.style.color = '#ff4444';
     else if (type === 'S') typeElem.style.color = '#ffd700';
     else if (type === 'R') typeElem.style.color = '#44ff44';
@@ -698,11 +698,11 @@ function showLootModal(message) {
         modal.style.display = 'block';
     }
     
-    // Прячем интерфейс боя, так как враг повержен
+    // Hide battle interface since enemy is defeated
     showBattleMode(false); 
 }
 
-// --- 6. АВТОРИЗАЦИЯ И ИНИЦИАЛИЗАЦИЯ ---
+// --- 6. AUTH AND INITIALIZATION ---
 
 function updateUI() {
     const token = localStorage.getItem('token');
@@ -714,7 +714,7 @@ function updateUI() {
         userBlock.style.display = 'flex';
         document.getElementById('playerName').textContent = localStorage.getItem('username');
         
-        // ВМЕСТО просто loadHeroData() запускаем нашу связку:
+        // Instead of just loadHeroData() we run our bundle:
         checkHeroAndInit(); 
     } else {
         guestBlock.style.display = 'block';
@@ -722,13 +722,13 @@ function updateUI() {
     }
 }
 
-// Обработка формы Auth
+// Auth form handling
 btnSubmitAuth?.addEventListener('click', async () => {
     const mode = document.getElementById('modalTitle').textContent;
     const username = document.getElementById('authUsername').value;
     const password = document.getElementById('authPassword').value;
 
-    if (mode === "Регистрация") {
+    if (mode === "Register") {
         const res = await fetch('http://127.0.0.1:8000/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -736,14 +736,14 @@ btnSubmitAuth?.addEventListener('click', async () => {
         });
 
         if (res.ok) {
-            // ВМЕСТО сообщения "Войдите", сразу вызываем логин
+            // Instead of "Please login", immediately call login
             await loginUser(username, password);
         } else {
             const d = await res.json();
-            showAuthMessage(d.detail || "Ошибка регистрации");
+            showAuthMessage(d.detail || "Registration error");
         }
     } else {
-        // Обычный вход
+        // Regular login
         await loginUser(username, password);
     }
 });
@@ -765,24 +765,24 @@ async function loginUser(username, password) {
         
         modalAuth.style.display = "none";
         
-        // 1. Обновляем интерфейс (кнопки войти/выйти)
+        // 1. Update UI (login/logout buttons)
         updateUI(); 
         
-        // 2. Проверяем наличие героя
+        // 2. Check for hero existence
         await checkHeroAndInit();
     } else {
-        showAuthMessage("Ошибка входа после регистрации");
+        showAuthMessage("Login error after registration");
     }
 }
 
 
-// События модалок
+// Modal events
 document.getElementById('btnLogin')?.addEventListener('click', () => {
-    document.getElementById('modalTitle').textContent = "Вход";
+    document.getElementById('modalTitle').textContent = "Login";
     modalAuth.style.display = "block";
 });
 document.getElementById('btnRegister')?.addEventListener('click', () => {
-    document.getElementById('modalTitle').textContent = "Регистрация";
+    document.getElementById('modalTitle').textContent = "Register";
     modalAuth.style.display = "block";
 });
 document.getElementById('btnLogout')?.addEventListener('click', () => {
@@ -791,12 +791,12 @@ document.getElementById('btnLogout')?.addEventListener('click', () => {
 });
 if (closeAuthBtn) closeAuthBtn.onclick = () => modalAuth.style.display = "none";
 
-// Глобальные функции для HTML
+// Global functions for HTML
 window.openCreateHeroModal = () => document.getElementById('modalCreateHero').style.display = 'block';
 window.sendAttack = sendAttack;
 window.closeLootModal = async () => {
     document.getElementById('modalLoot').style.display = 'none';
-    // Принудительно ставим false, чтобы updateMap не блокировался
+    // Force false so updateMap doesn't get blocked
     isGlobalBattleLock = false; 
     await updateMap(); 
 };
@@ -805,7 +805,7 @@ window.openUpgradeModal = () => {
     renderUpgradeOptions();
 };
 
-// --- 7. ПРОКАЧКА И СОЗДАНИЕ ---
+// --- 7. UPGRADE AND CREATION ---
 
 async function sendUpgrade(statKey) {
     const token = localStorage.getItem('token');
@@ -825,20 +825,20 @@ async function sendUpgrade(statKey) {
 async function checkHeroAndInit() {
     const token = localStorage.getItem('token');
     try {
-        const res = await fetch('http://127.0.0.1:8000/heroes/me', { // Предположим, у вас есть такой эндпоинт
+        const res = await fetch('http://127.0.0.1:8000/heroes/me', { // Assuming you have such endpoint
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (res.status === 404 || (res.ok && !(await res.json()))) {
-            // Если героя нет — открываем модалку создания
+            // If no hero — open creation modal
             window.openCreateHeroModal();
         } else {
-            // Если герой есть — загружаем игру
+            // If hero exists — load game
             await loadHeroData();
             await updateMap();
         }
     } catch (e) {
-        console.error("Ошибка при проверке героя:", e);
+        console.error("Error checking hero:", e);
     }
 }
 
@@ -849,18 +849,18 @@ function renderUpgradeOptions() {
     document.getElementById('availablePoints').textContent = hero.stat_points;
     const list = document.getElementById('upgradeList');
 
-    // Добавляем свойство 'field', которое соответствует ключу в объекте hero
+    // Add 'field' property that corresponds to key in hero object
     const stats = [
-        {k:'str', l:'Сила', field: 'strength'}, 
-        {k:'agi', l:'Ловкость', field: 'agility'}, 
-        {k:'vit', l:'Живучесть', field: 'vitality'}, 
-        {k:'int', l:'Интеллект', field: 'intelligence'}, 
-        {k:'dex', l:'Меткость', field: 'dexterity'}
+        {k:'str', l:'Strength', field: 'strength'}, 
+        {k:'agi', l:'Agility', field: 'agility'}, 
+        {k:'vit', l:'Vitality', field: 'vitality'}, 
+        {k:'int', l:'Intelligence', field: 'intelligence'}, 
+        {k:'dex', l:'Dexterity', field: 'dexterity'}
     ];
 
     list.innerHTML = stats.map(s => {
-        // Получаем текущее значение из кэша. 
-        // Если вдруг данные не пришли, ставим 0, чтобы не было undefined
+        // Get current value from cache. 
+        // If data didn't come, set 0 to avoid undefined
         const currentVal = hero[s.field] || 0;
 
         return `
@@ -873,29 +873,29 @@ function renderUpgradeOptions() {
         `;
     }).join('');
 }
-// Открыть модалку создания
+// Open create hero modal
 window.openCreateHeroModal = function() {
     const modal = document.getElementById('modalCreateHero');
     if (modal) {
         modal.style.display = 'block';
     } else {
-        console.error("Модалка modalCreateHero не найдена в HTML!");
+        console.error("Modal modalCreateHero not found in HTML!");
     }
 };
 
-// Закрыть модалку создания
+// Close create hero modal
 window.closeCreateHeroModal = function() {
     document.getElementById('modalCreateHero').style.display = 'none';
 };
 
-// Функция подтверждения создания (привязана к кнопке в модалке)
+// Creation confirmation function (bound to button in modal)
 document.getElementById('btnConfirmCreate')?.addEventListener('click', async () => {
     const nameInput = document.getElementById('newHeroName');
     const name = nameInput ? nameInput.value : "";
     const token = localStorage.getItem('token');
 
     if (!name) {
-        alert("Введите имя героя!");
+        alert("Enter hero name!");
         return;
     }
 
@@ -906,18 +906,18 @@ document.getElementById('btnConfirmCreate')?.addEventListener('click', async () 
         });
 
         if (response.ok) {
-            addLog(`Герой ${name} успешно создан!`);
+            addLog(`Hero ${name} created successfully!`);
             window.closeCreateHeroModal();
-            // Сразу обновляем данные и карту
+            // Immediately update data and map
             await loadHeroData();
             await updateMap();
         } else {
             const data = await response.json();
-            alert(data.detail || "Ошибка при создании героя");
+            alert(data.detail || "Error creating hero");
         }
     } catch (error) {
-        console.error("Ошибка запроса на создание:", error);
-        alert("Сервер не отвечает");
+        console.error("Create request error:", error);
+        alert("Server not responding");
     }
 });
 
@@ -926,7 +926,7 @@ function showPickLootModal(lootItems) {
     const container = document.getElementById('pendingLootContainer');
     if (!modal || !container) return;
 
-    container.innerHTML = ''; // Очищаем старые кнопки
+    container.innerHTML = ''; // Clear old buttons
 
     lootItems.forEach(item => {
         const btn = document.createElement('button');
@@ -934,11 +934,11 @@ function showPickLootModal(lootItems) {
         btn.style.padding = '10px';
         btn.style.cursor = 'pointer';
         
-        const typeLabel = item.type === 'artifact' ? 'Артефакт' : 'Заклинание';
+        const typeLabel = item.type === 'artifact' ? 'Artifact' : 'Spell';
         btn.innerHTML = `<b>${item.name}</b><br><small style="color:#aaa;">${typeLabel}</small>`;
-        btn.title = item.description || "Описание скрыто";
+        btn.title = item.description || "Description hidden";
         
-        // При клике отправляем запрос
+        // On click send request
         btn.onclick = () => sendPickLoot(item.type, item.id);
         
         container.appendChild(btn);
@@ -947,11 +947,11 @@ function showPickLootModal(lootItems) {
     modal.style.display = 'block';
 }
 
-// Функция отправки выбора на бэкенд
+// Function to send choice to backend
 async function sendPickLoot(choiceType, choiceId) {
     const token = localStorage.getItem('token');
     try {
-        // Убедись, что URL правильный (если роутер имеет префикс /battle, добавь его)
+        // Make sure URL is correct (if router has /battle prefix, add it)
         const response = await fetch(`http://127.0.0.1:8000/world/pick_loot?choice_type=${choiceType}&choice_id=${choiceId}`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
@@ -961,23 +961,23 @@ async function sendPickLoot(choiceType, choiceId) {
         
         if (response.ok) {
             document.getElementById('modalPickLoot').style.display = 'none';
-            addLog(`Награда получена: ${data.message}`);
-            await loadHeroData(); // Обновляем статы с новым артефактом
+            addLog(`Reward received: ${data.message}`);
+            await loadHeroData(); // Update stats with new artifact
         } else {
-            alert("Ошибка выбора: " + data.detail);
+            alert("Choice error: " + data.detail);
         }
     } catch (e) {
-        console.error("Ошибка при выборе лута:", e);
+        console.error("Loot selection error:", e);
     }
 }
 
 window.continueJourney = function() {
     document.getElementById('restInterface').style.display = 'none';
     document.getElementById('movementControls').style.display = 'block';
-    addLog("Вы покинули уютный лагерь и отправились дальше.");
+    addLog("You left the cozy camp and moved on.");
 };
 
-// Запрашивает данные события и генерирует кнопки
+// Requests event data and generates buttons
 window.loadCurrentEvent = async function() {
     const token = localStorage.getItem('token');
     try {
@@ -986,24 +986,24 @@ window.loadCurrentEvent = async function() {
         });
         
         if (!response.ok) {
-            // 🔥 БАГФИКС: Если сервер выдал 400 или 404 (событие уже пройдено),
-            // мы просто скрываем окно ивента и показываем кнопки ходьбы!
+            // BUGFIX: If server returned 400 or 404 (event already completed),
+            // we just hide event window and show movement buttons!
             document.getElementById('eventInterface').style.display = 'none';
-            document.getElementById('movementControls').style.display = 'flex'; // Или 'grid'
+            document.getElementById('movementControls').style.display = 'flex'; // Or 'grid'
             return; 
         }
         
         const data = await response.json();
 
-        // Заполняем тексты
+        // Fill texts
         document.getElementById('eventName').textContent = data.name;
         document.getElementById('eventDescription').textContent = data.description;
         
-        // Очищаем старые кнопки
+        // Clear old buttons
         const container = document.getElementById('eventChoicesContainer');
         container.innerHTML = '';
         
-        // Создаем новые
+        // Create new
         data.choices.forEach(choice => {
             const btn = document.createElement('button');
             btn.textContent = choice.text;
@@ -1012,10 +1012,10 @@ window.loadCurrentEvent = async function() {
             container.appendChild(btn);
         });
 
-    } catch (e) { console.error("Ошибка загрузки события:", e); }
+    } catch (e) { console.error("Event load error:", e); }
 };
 
-// Отправляет решение на сервер
+// Sends decision to server
 window.resolveEvent = async function(choiceValue) {
     const token = localStorage.getItem('token');
     try {
@@ -1028,25 +1028,25 @@ window.resolveEvent = async function(choiceValue) {
         
         if (response.ok) {
             addLog(`✨ ${data.message}`);
-            await loadHeroData(); // Обновляем статы (например, если дали +Силу)
+            await loadHeroData(); // Update stats (e.g., if +Strength given)
             
-            // Событие пройдено, возвращаем кнопки движения
+            // Event completed, return movement buttons
             document.getElementById('eventInterface').style.display = 'none';
             document.getElementById('movementControls').style.display = 'block';
         } else {
-            addLog(`❌ Ошибка: ${data.detail}`);
+            addLog(`❌ Error: ${data.detail}`);
         }
-    } catch (e) { console.error("Ошибка при выборе:", e); }
+    } catch (e) { console.error("Choice error:", e); }
 };
 
 function handleRebirth() {
-    // Просто перезагружаем страницу. 
-    // Скрипт при старте увидит токен, не найдет героя и откроет создание.
+    // Just reload the page. 
+    // Script on startup will see token, won't find hero, and open creation.
     location.reload();
 }
 
 
-// --- 8. РЕКОРДЫ ---
+// --- 8. HIGH SCORES ---
 
 window.showHighScores = async function() {
     const modal = document.getElementById('modalHighScores');
@@ -1054,16 +1054,16 @@ window.showHighScores = async function() {
     if (!modal || !container) return;
 
     modal.style.display = 'block';
-    container.innerHTML = '<p style="text-align: center;">Загрузка легенд...</p>';
+    container.innerHTML = '<p style="text-align: center;">Loading legends...</p>';
 
     try {
         const response = await fetch('http://127.0.0.1:8000/highscore/');
-        if (!response.ok) throw new Error("Ошибка загрузки");
+        if (!response.ok) throw new Error("Load error");
         
         const scores = await response.json();
         
         if (scores.length === 0) {
-            container.innerHTML = '<p style="text-align: center;">Летописи пока пусты. Будь первым!</p>';
+            container.innerHTML = '<p style="text-align: center;">Chronicles are still empty. Be the first!</p>';
             return;
         }
 
@@ -1071,12 +1071,12 @@ window.showHighScores = async function() {
             <table style="width: 100%; border-collapse: collapse; text-align: left; font-family: monospace;">
                 <thead>
                     <tr style="border-bottom: 2px solid var(--accent-color); color: var(--accent-color);">
-                        <th style="padding: 10px;">Игрок</th>
-                        <th style="padding: 10px;">Герой</th>
-                        <th style="padding: 10px;">Ур.</th>
-                        <th style="padding: 10px;">Этаж</th>
-                        <th style="padding: 10px;">Золото</th>
-                        <th style="padding: 10px;">Дата</th>
+                        <th style="padding: 10px;">Player</th>
+                        <th style="padding: 10px;">Hero</th>
+                        <th style="padding: 10px;">Lvl</th>
+                        <th style="padding: 10px;">Floor</th>
+                        <th style="padding: 10px;">Gold</th>
+                        <th style="padding: 10px;">Date</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1099,10 +1099,10 @@ window.showHighScores = async function() {
         container.innerHTML = html;
 
     } catch (e) {
-        container.innerHTML = `<p style="text-align: center; color: #ff5555;">Не удалось загрузить рекорды: ${e.message}</p>`;
+        container.innerHTML = `<p style="text-align: center; color: #ff5555;">Could not load scores: ${e.message}</p>`;
     }
 }
 
 
-// Старт
+// Start
 updateUI();

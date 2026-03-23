@@ -7,15 +7,15 @@ from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact,HeroRea
 
 def give_monster_rewards(hero, monster,session):
     
-    # Расчет золота
+    # Calculate gold
     gold_gain = random.randint(monster.min_gold, monster.max_gold)
     hero.gold += gold_gain
     
-    # Расчет опыта 
+    # Calculate experience
     xp_gain = monster.xp_reward
     hero.xp += xp_gain
     
-    # Очистка состояния боя
+    # Clear battle state
     hero.active_monster_id = None
 
     is_boss = getattr(monster, "is_boss", False) 
@@ -25,23 +25,23 @@ def give_monster_rewards(hero, monster,session):
     if is_boss:
         loot_drop_triggered = True
     else:
-        hero.fights_without_drop += 1 # Увеличиваем счетчик обычных боев
-        # Шанс 10% ИЛИ счетчик дошел до 10
+        hero.fights_without_drop += 1 # Increase regular battle counter
+        # 10% chance OR counter reached 10
         if random.random() <= 0.10 or hero.fights_without_drop >= 10:
             loot_drop_triggered = True
-            hero.fights_without_drop = 0 # Обнуляем счетчик при выпадении
+            hero.fights_without_drop = 0 # Reset counter on drop
 
-    #  ГЕНЕРАЦИЯ ПРЕДЛОЖЕНИЙ (2 арта + 2 спелла) 
+    # GENERATE OFFERS (2 artifacts + 2 spells)
     if loot_drop_triggered:
-        # Получаем все доступные артефакты и заклинания
+        # Get all available artifacts and spells
         all_artifacts = session.exec(select(Artifact)).all()
         all_spells = session.exec(select(Spell)).all()
 
-        # Выбираем случайные (делаем проверку, чтобы в базе было достаточно вещей)
+        # Select random ones (check if enough items in DB)
         sampled_arts = random.sample(all_artifacts, k=min(2, len(all_artifacts)))
         sampled_spells = random.sample(all_spells, k=min(2, len(all_spells)))
 
-        # Записываем в pending_loot в формате списка словарей
+        # Write to pending_loot as list of dicts
         loot_choices = []
         for a in sampled_arts:
             loot_choices.append({"type": "artifact", "id": a.id, "name": a.name, "description": a.description})
@@ -49,9 +49,9 @@ def give_monster_rewards(hero, monster,session):
             loot_choices.append({"type": "spell", "id": s.id, "name": s.name, "description": s.description})
 
         hero.pending_loot = loot_choices
-        loot_msg = " Внимание! Вы выбили редкий лут. Выберите одну из наград!"
+        loot_msg = " Attention! You dropped rare loot. Choose one of the rewards!"
     
-    # Проверка на повышение уровня 
+    # Level up check
     lvl_up_msg = ""
     while hero.xp >= 100:
         hero.level+=1
@@ -59,31 +59,31 @@ def give_monster_rewards(hero, monster,session):
         hero.xp -= 100
         hero.hp = hero.max_hp
         hero.mp = hero.max_mp
-        lvl_up_msg = f'Вы получили {hero.level} уровень !'
+        lvl_up_msg = f'You reached level {hero.level}!'
 
-    return f"Победа! Золото: {gold_gain}, опыт: {xp_gain}.{lvl_up_msg}{loot_msg}"
+    return f"Victory! Gold: {gold_gain}, XP: {xp_gain}.{lvl_up_msg}{loot_msg}"
 
 def get_room_type(floor: int, lane: int, seed: int) -> str:
-    # Создаем уникальный сид для этой конкретной точки пространства
-    # Чтобы комнаты на разных этажах не повторялись предсказуемо
+    # Create unique seed for this specific point in space
+    # So rooms on different floors don't repeat predictably
     point_seed = f"{seed}-{floor}-{lane}"
     random.seed(point_seed)
     
-    #  Босс каждый 10-й этаж и этаж 
+    # Boss every 10th floor
     if floor > 0 and floor % 10 == 0:
         return "BOSS"
-    # перед посом всегда отдых
+    # Always rest before boss
     if floor > 0 and (floor % 10) % 9 == 0:
         return "R"
     
-    # Распределение типов комнат
+    # Room type distribution
     # 'B' - Battle, 'S' - Shop, 'R' - Rest, 'E' - Event/Question
     roll = random.random()
-    if roll < 0.55: return "B"   # 50% шанс битвы
-    if roll < 0.8: return "E"  # 25% событие
-    if roll < 0.9: return "S"   # 10% магазин
+    if roll < 0.55: return "B"   # 50% chance battle
+    if roll < 0.8: return "E"  # 25% event
+    if roll < 0.9: return "S"   # 10% shop
     
-    # что б перед 9 этажем не было 2 отдыха подряд заменяем 8 этаж на бой 
+    # To prevent 2 rests in a row before floor 9, replace floor 8 with battle
     else:                       
         if (floor % 10) % 8 == 0:
             return "B"
@@ -92,7 +92,7 @@ def get_room_type(floor: int, lane: int, seed: int) -> str:
     
 def init_artifacts(session: Session):
     for data in PRESET_ARTIFACTS:
-        # Проверяем, существует ли уже такой артефакт
+        # Check if artifact already exists
         exists = session.exec(select(Artifact).where(Artifact.name == data["name"])).first()
         if not exists:
             new_art = Artifact(**data)
@@ -101,7 +101,7 @@ def init_artifacts(session: Session):
 
 def init_spells(session: Session):
     for s_data in PRESET_SPELLS:
-        # Проверяем, существует ли уже спелл с таким именем
+        # Check if spell with same name already exists
         statement = select(Spell).where(Spell.name == s_data["name"])
         existing_spell = session.exec(statement).first()
         
@@ -113,7 +113,7 @@ def init_spells(session: Session):
 
 def init_encounters(session: Session):
     for data in PRESET_ENCOUNTERS:
-        # Проверяем, существует ли уже такое событие
+        # Check if event already exists
         exists = session.exec(select(Encounters).where(Encounters.name == data["name"])).first()
         if not exists:
             new_art = Encounters(**data)
@@ -121,12 +121,12 @@ def init_encounters(session: Session):
     session.commit()
 
 def generate_loot_choices(session):
-    # Берем 2 случайных артефакта
+    # Take 2 random artifacts
     statement_arts = select(Artifact).where(Artifact.rarity != "admin")
     all_arts = session.exec(statement_spell).all()
     arts_sample = random.sample(all_arts, k=2)
     
-    # Берем 2 случайных заклинания
+    # Take 2 random spells
 
     statement_spell = select(Spell).where(Spell.rarity != "admin")
     all_spells = session.exec(statement_spell).all()

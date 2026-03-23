@@ -8,79 +8,79 @@ from app.utils import give_monster_rewards, hero_overflow_check
 
 def effect_cast_fire_ball(hero ,session):
     if not hero.active_monster_id:
-        return "Здесь нет врагов, чтобы пускать огненные шары!"
+        return "There are no enemies here to cast fireballs at!"
     
-    # Ищем монстра по ID, сохраненному у героя
+    # Find monster by ID saved in hero
     monster = session.get(Monster, hero.active_monster_id)
     if not monster:
         hero.active_monster_id = None
-        return "Монстр исчез в тени..."
+        return "Monster vanished into shadow..."
 
     damage = 10 + (hero.total_intelligence * 3) + hero.level
     monster.current_hp -= int(damage)
     
-    return f"Огненный шар наносит {int(damage)} урона монстру {monster.name}!"
+    return f"Fireball deals {int(damage)} damage to monster {monster.name}!"
 
 def effect_сhain_lightning(hero ,session):
-    # Ищем монстра по ID, сохраненному у героя
+    # Find monster by ID saved in hero
     monster = session.get(Monster, hero.active_monster_id)
     if not monster:
         hero.active_monster_id = None
-        return "Монстр исчез в тени..."
+        return "Monster vanished into shadow..."
 
     damage = 15 + (hero.total_intelligence * 5) + (hero.dexterity*2) + (hero.level*2)
     monster.current_hp -= int(damage)
     
-    return f"Громовой разряд наносит {int(damage)} урона монстру {monster.name}!"
+    return f"Thunder bolt deals {int(damage)} damage to monster {monster.name}!"
 
 def effect_heal_self(hero, session):
     base_power = 5
-    # Интеллект теперь реально влияет на силу магии!
+    # Intelligence now actually affects magic power!
     spell_power = base_power + (hero.total_intelligence *2) + hero.level
 
     if hero.hp >= hero.max_hp:
-        # Возвращаем ману, если лечить нечего (опционально)
+        # Return mana if nothing to heal (optional)
         # hero.mp += spell.mp_cost 
-        return "Герой уже полностью здоров, магия рассеялась впустую."
+        return "Hero is already fully healthy, magic dissipated for nothing."
 
     old_hp = hero.hp
-    # Лечим, но не выше максимума
+    # Heal but not above maximum
     hero.hp = min(hero.max_hp, hero.hp + spell_power)
     
     actual_healed = hero.hp - old_hp
 
     return (
-        f"{hero.name} шепчет заклинание... Восстановлено {actual_healed} HP. "
-        f"Состояние: {hero.hp}/{hero.max_hp} HP."
+        f"{hero.name} whispers the spell... Restored {actual_healed} HP. "
+        f"Status: {hero.hp}/{hero.max_hp} HP."
     )
 
 def effect_admin_kill(hero, session):
     if not hero.active_monster_id:
-        return "Здесь нет врагов"
+        return "There are no enemies here"
     
-    # Ищем монстра по ID, сохраненному у героя
+    # Find monster by ID saved in hero
     monster = session.get(Monster, hero.active_monster_id)
     if not monster:
         hero.active_monster_id = None
-        return "Монстр исчез в тени..."
+        return "Monster vanished into shadow..."
 
     damage = 999999
     monster.current_hp -= int(damage)
 
-    return f"Огненный шар наносит {int(damage)} урона монстру {monster.name}!"
+    return f"Fireball deals {int(damage)} damage to monster {monster.name}!"
 
 def effect_fire_attack(hero,session):
     monster = session.get(Monster, hero.active_monster_id)
-    # --- ХОД ГЕРОЯ ---
+    # --- HERO TURN ---
     hero_damage = random.randint(10+hero.total_strength+hero.intelligence, 10+ hero.total_strength + hero.total_dexterity+hero.intelligence)
     log = []
 
     if random.random() <= hero.total_crit/100: 
         damage = hero_damage * 2
-        log.append(f"Критический удар! Вы ударили огнянной атакой {monster.name} на {damage} урона.")
+        log.append(f"Critical hit! You hit with fire attack {monster.name} for {damage} damage.")
     else:
         damage = hero_damage
-        log.append(f"Вы ударили огнянной атакой {monster.name} на {damage} урона.")
+        log.append(f"You hit with fire attack {monster.name} for {damage} damage.")
     
     monster.current_hp -= int(damage)
 
@@ -88,16 +88,16 @@ def effect_fire_attack(hero,session):
 
 def effect_ice_attack(hero,session):
     monster = session.get(Monster, hero.active_monster_id)
-    # --- ХОД ГЕРОЯ ---
+    # --- HERO TURN ---
     hero_damage = random.randint(10+hero.total_strength, 10+ hero.total_strength + hero.total_dexterity)
     log = []
 
     if random.random() <= hero.total_crit/100: 
         damage = hero_damage * 2
-        log.append(f"Критический удар! Вы ударили ледяной атакой {monster.name} двигаеться медленее. Вы наненесли {damage}.")
+        log.append(f"Critical hit! You hit with ice attack {monster.name} it moves slower. You dealt {damage}.")
     else:
         damage = hero_damage
-        log.append(f"Вы ударили ледяной атакой {monster.name} двигаеться медленее. Вы нанесли {damage}")
+        log.append(f"You hit with ice attack {monster.name} it moves slower. You dealt {damage}")
     
     monster.current_hp -= int(damage)
     hero.hp += (monster.max_attack /3)
@@ -107,11 +107,11 @@ def effect_ice_attack(hero,session):
 
 def effect_crit_attack(hero,session):
     monster = session.get(Monster, hero.active_monster_id)
-    # --- ХОД ГЕРОЯ ---
+    # --- HERO TURN ---
     hero_damage = random.randint(10+hero.total_strength, 10+ hero.total_strength + hero.total_dexterity)
     log = []
     damage = hero_damage * 2
-    log.append(f"Критический удар! Вы ударили  {monster.name} на {damage} урона..")
+    log.append(f"Critical hit! You hit {monster.name} for {damage} damage..")
     
     monster.current_hp -= int(damage)
 
@@ -120,7 +120,7 @@ def effect_crit_attack(hero,session):
 def effect_mana_surge(hero,session):
     
     if hero.hp <= 50:
-        return "Вы слишком слабы что б применить это заклинание"
+        return "You are too weak to cast this spell"
     else:
 
         hero.hp -= 50
@@ -128,7 +128,7 @@ def effect_mana_surge(hero,session):
 
         hero_overflow_check(hero)
 
-        return "Вы жертвуете своим здоровьем, что б востановить часть маны"
+        return "You sacrifice your health to restore some mana"
 
 def effect_void_wrath(hero,session):
     monster = session.get(Monster, hero.active_monster_id)
@@ -136,7 +136,7 @@ def effect_void_wrath(hero,session):
 
     monster.current_hp -= int(damage)
     hero.mp = 0
-    return f"Вы выплескиваете всю свою магическую энергию. {monster.name} получает {damage} урона! Вы полонстю опустошены..."
+    return f"You unleash all your magical energy. {monster.name} takes {damage} damage! You are completely depleted..."
 
 def effect_fire_spear(hero,session):
     monster = session.get(Monster, hero.active_monster_id)
@@ -147,12 +147,12 @@ def effect_fire_spear(hero,session):
 
     if random.random() <= hero.total_crit/100: 
         damage = hero_damage * 2
-        log.append(f"Критический удар! Вы ударили огняным копьем {monster.name} на {damage} урона.")
+        log.append(f"Critical hit! You hit with fire spear {monster.name} for {damage} damage.")
     
     else:
         damage = hero_damage
         
-        log.append(f"Вы ударили огняным копьем {monster.name} на {damage} урона.")
+        log.append(f"You hit with fire spear {monster.name} for {damage} damage.")
     
     monster.current_hp -= int(damage)
 
@@ -163,23 +163,23 @@ def effect_magic_push(hero,session):
 
     hero_damage = 10 + (hero.total_intelligence * 2) + hero.level*3 + hero.strength 
     
-    log= []
+    log=[]
 
     if random.random() > 0.5:
         
         damage = hero_damage *2
-        log.append(f"Вы применили магический толчек на {monster.name} он упал и получил {damage} критического урона.")
+        log.append(f"You used magic push on {monster.name} it fell and took {damage} critical damage.")
     else:
         
         damage = hero_damage
-        log.append(f"Вы применили магический толчек на {monster.name} он получил {damage} урона.")
+        log.append(f"You used magic push on {monster.name} it took {damage} damage.")
 
     monster.current_hp -= int(damage)
     
     return log
 
 
-# Реестр: связываем строку из БД с функцией
+# Registry: link string from DB with function
 SPELLS_EFFECTS = {
     "deal_fire_damage": effect_cast_fire_ball,
     "heal_self": effect_heal_self,
@@ -187,7 +187,7 @@ SPELLS_EFFECTS = {
     "fire_attack": effect_fire_attack,
     "ice_attack": effect_ice_attack,
     "crit_attack": effect_crit_attack,
-    "сhain_lightning": effect_сhain_lightning,
+    "сhain-lightning": effect_сhain_lightning,
     "mana_surge": effect_mana_surge,
     "void_wrath": effect_void_wrath,
     "fire_spear": effect_fire_spear,

@@ -13,25 +13,23 @@ import os
 
 
 
-
-
 app = FastAPI(title="Dungeon_API_Adventure")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Разрешает запросы с любых адресов (важно для фронтенда)
+    allow_origins=["*"], # Allows requests from any origin (important for frontend)
     allow_credentials=True,
-    allow_methods=["*"], # Разрешает все методы (GET, POST, OPTIONS и т.д.)
-    allow_headers=["*"], # Разрешает любые заголовки (включая твой Authorization)
+    allow_methods=["*"], # Allows all methods (GET, POST, OPTIONS, etc.)
+    allow_headers=["*"], # Allows any headers (including your Authorization)
 )
 
 
 script_dir = os.path.dirname(__file__)
-static_path = os.path.join(script_dir, "../static") # путь к папке static
+static_path = os.path.join(script_dir, "../static") # path to static folder
 
 app.mount("/static", StaticFiles(directory=static_path), name="static")
 
-# Подключаем модули
+# Connect modules
 app.include_router(auth.router)
 app.include_router(heroes.router)
 app.include_router(battle.router)
@@ -42,10 +40,10 @@ app.include_router(highscore.router)
 
 @app.get("/")
 def read_index():
-    # FastAPI просто прочитает файл index.html и отдаст его в браузер
+    # FastAPI just reads index.html and serves it to browser
     return FileResponse("static/index.html")
 
-# Запускаем создание таблиц при старте
+# Create tables on startup
 @app.on_event("startup")
 def on_startup():
     init_db()
@@ -57,23 +55,23 @@ def on_startup():
         init_encounters(session)
         init_spells(session)
     finally:
-        session.close() # Всегда закрываем сессию вручную
+        session.close() # Always close session manually
 
 @app.get("/")
 def welcome():
-    return {"message": "Подземелье ждет!"}
+    return {"message": "Dungeon awaits!"}
 
 @app.get("/monsters/{name}")
 def get_monster_status(name: str, session: Session = Depends(get_session)):
-    # Выбрать всё из таблицы Hero, где имя совпадает
+    # Select all from Monster table where name matches
     statement = select(Monster).where(Monster.name == name)
     
-    # Выполняем запрос и берем первый результат
+    # Execute query and get first result
     monster = session.exec(statement).first()
     
-    # Если герой не найден 
+    # If monster not found
     if not monster:
-        raise HTTPException(status_code=404, detail="Монстр не найден в этом подземелье")
+        raise HTTPException(status_code=404, detail="Monster not found in this dungeon")
     
     return monster
 
@@ -85,7 +83,7 @@ def get_all_monsters(session: Session = Depends(get_session)):
     monsters = session.exec(statement).all()
 
     if not monsters : 
-        raise HTTPException(status_code=404, detail="В подземельни нет монстров")
+        raise HTTPException(status_code=404, detail="No monsters in the dungeon")
     
     return monsters
 

@@ -19,35 +19,35 @@ router = APIRouter(
 @router.post("/rest") 
 def hero_rest(hero: Hero = Depends(get_current_hero), session: Session = Depends(get_session)):
     
-    # ОПРЕДЕЛЯЕМ ТИП ТЕКУЩЕЙ ЛОКАЦИИ
-    # Мы используем те же координаты и сид, что и при движении
+    # DETERMINE CURRENT LOCATION TYPE
+    # We use the same coordinates and seed as when moving
     current_room_type = get_room_type(hero.current_room, hero.current_lane, hero.world_seed)
     
-    #  Находимся ли мы в зоне отдыха?
+    # Are we in a rest zone?
     if current_room_type != "R":
         raise HTTPException(
             status_code=400, 
-            detail=f"Здесь опасно! Вы не можете отдыхать в комнате типа '{current_room_type}'"
+            detail=f"It's dangerous here! You can't rest in a room of type '{current_room_type}'"
         )
     
-    # ПРОВЕРКА ЗОЛОТА И ЗДОРОВЬЯ
+    # CHECK GOLD AND HEALTH
     heal_cost = 5
     if hero.gold < heal_cost:
-        raise HTTPException(status_code=400, detail="Нужно больше золота для припасов!")
+        raise HTTPException(status_code=400, detail="You need more gold for supplies!")
     
     if hero.hp == hero.max_hp:
-        return {"message": "Вы полны сил и не нуждаетесь в отдыхе."}
+        return {"message": "You are full of strength and don't need rest."}
 
-    # ПРИМЕНЕНИЕ ЭФФЕКТОВ
+    # APPLY EFFECTS
     hero.gold -= heal_cost
     hero.hp = hero.max_hp 
     
-    # СОХРАНЕНИЕ
+    # SAVE
     session.add(hero)
     session.commit()
     
     return {
-        "message": "Вы разбили лагерь и восстановили силы.",
+        "message": "You set up camp and restored your strength.",
         "hp": f"{hero.hp}/{hero.max_hp}",
         "gold_left": hero.gold
     }
@@ -56,7 +56,7 @@ def hero_rest(hero: Hero = Depends(get_current_hero), session: Session = Depends
 def get_shop_catalog(hero: Hero = Depends(get_current_hero),session: Session = Depends(get_session),):
 
     if not hero:
-        raise HTTPException(status_code=404, detail="Герой не найден")
+        raise HTTPException(status_code=404, detail="Hero not found")
 
     if hero.current_shop_items is None:
         statement = select(Artifact).where(Artifact.rarity.in_(["base", "store"]))
@@ -65,16 +65,16 @@ def get_shop_catalog(hero: Hero = Depends(get_current_hero),session: Session = D
         count = min(3, len(all_available))
         selection = random.sample(all_available, k=count)
         
-        # Сохраняем ID
+        # Save IDs
         hero.current_shop_items = ",".join([str(a.id) for a in selection])
         session.add(hero)
         session.commit()
     
-    # Если в базе стоит метка "empty", значит всё раскупили
+    # If database has "empty" mark, everything was bought
     if hero.current_shop_items == "empty" or not hero.current_shop_items:
-        return {"hero_gold": hero.gold, "items_for_sale": [], "message": "Магазин пуст"}
+        return {"hero_gold": hero.gold, "items_for_sale": [], "message": "Shop is empty"}
     
-    #Получаем объекты артефактов по сохраненным ID
+    # Get artifact objects by saved IDs
     item_ids = [int(i) for i in hero.current_shop_items.split(",") if i]
     shop_items = session.exec(select(Artifact).where(Artifact.id.in_(item_ids))).all()
 
@@ -86,139 +86,139 @@ def get_shop_catalog(hero: Hero = Depends(get_current_hero),session: Session = D
 @router.post("/resolve_event")
 def resolve_event(choice: str, hero: Hero = Depends(get_current_hero), session: Session = Depends(get_session)):
     if not hero:
-        raise HTTPException(status_code=404, detail="Герой не найден")
+        raise HTTPException(status_code=404, detail="Hero not found")
     
     if not hero.active_event_id:
-        raise HTTPException(status_code=400, detail="У вас нет активных событий")
+        raise HTTPException(status_code=400, detail="You have no active events")
 
     event = session.get(Encounters, hero.active_event_id)
     
-    # 1. ЗАЩИТА ОТ ЧИТЕРОВ: Проверяем, что присланный choice реально есть в этом ивенте
+    # 1. CHEATER PROTECTION: Check that sent choice actually exists in this event
     valid_choices = [
         event.choice_1_val, event.choice_2_val, event.choice_3_val, 
         event.choice_4_val, event.choice_5_val
     ]
     if choice not in valid_choices:
-         raise HTTPException(status_code=400, detail="Недопустимый выбор для этого события")
+         raise HTTPException(status_code=400, detail="Invalid choice for this event")
 
-    # 2. Вызываем эффект
+    # 2. Call effect
     handler = ENCAUNTERS_EFFECTS.get(event.effect_key)
     if handler:
         message = handler(hero, session, choice)
         session.commit()
         return {"message": message, "hero": hero}
     
-    raise HTTPException(status_code=500, detail="Ошибка обработки ивента: обработчик не найден")
+    raise HTTPException(status_code=500, detail="Event processing error: handler not found")
 
 @router.post("/buy")
 def buy_artifact( artifact_id: int, hero: Hero = Depends(get_current_hero), session: Session = Depends(get_session)):
     artifact = session.get(Artifact, artifact_id)
 
     if not hero or not artifact:
-        raise HTTPException(status_code=404, detail="Герой или артефакт не найден")
+        raise HTTPException(status_code=404, detail="Hero or artifact not found")
 
     current_room_type = get_room_type(hero.current_room, hero.current_lane, hero.world_seed)
     
-    # Проверем локцию
+    # Check location
     if current_room_type != "S":
         raise HTTPException(
             status_code=400, 
-            detail=f"Артефакты можно купить только в магазине"
+            detail=f"Artifacts can only be bought in a shop"
         )
 
-    #  Проверяем деньги
+    # Check money
     if hero.gold < artifact.cost:
-        raise HTTPException(status_code=400, detail="Недостаточно золота!")
+        raise HTTPException(status_code=400, detail="Not enough gold!")
 
-    # Проверяем, нет ли уже такого артефакта
+    # Check if artifact already exists
     if artifact in hero.artifacts:
-        raise HTTPException(status_code=400, detail="У вас уже есть этот артефакт")
+        raise HTTPException(status_code=400, detail="You already have this artifact")
 
-    # Проверяем, есть ли этот товар именно в текущем магазине
+    # Check if this item is in current shop
     current_items = hero.current_shop_items.split(",")
     if str(artifact_id) not in current_items:
-        raise HTTPException(status_code=400, detail="Этого товара больше нет в продаже")
+        raise HTTPException(status_code=400, detail="This item is no longer for sale")
     
    
     
     new_items = [i for i in current_items if i != str(artifact_id)]
 
     if len(new_items) == 0:
-        hero.current_shop_items = "empty" # Помечаем, что магазин полностью выкуплен
+        hero.current_shop_items = "empty" # Mark shop as fully bought
     else:
         hero.current_shop_items = ",".join(new_items)
 
 
-    # Проводим сделку
+    # Make the deal
     hero.gold -= artifact.cost
     hero.artifacts.append(artifact)
     
-    # Удаляем купленный ID из списка магазина
+    # Remove purchased ID from shop list
     current_items.remove(str(artifact_id))
     hero.current_shop_items = ",".join(current_items)
 
     session.add(hero)
     session.commit()
     
-    return {"message": f"Куплено: {artifact.name}", "new_gold": hero.gold}
+    return {"message": f"Purchased: {artifact.name}", "new_gold": hero.gold}
 
 @router.post("/pick_loot")
 def pick_loot(
-    choice_type: str, # "artifact" или "spell"
+    choice_type: str, # "artifact" or "spell"
     choice_id: int, 
     session: Session = Depends(get_session),
     hero: Hero = Depends(get_current_hero), 
 
 ):
-    # Ищем героя
+    # Find hero
     if not hero:
-        raise HTTPException(status_code=404, detail="Герой не найден")
+        raise HTTPException(status_code=404, detail="Hero not found")
 
-    #  Проверяем, есть ли вообще из чего выбирать
+    # Check if there's anything to choose from
     if not hero.pending_loot:
-        raise HTTPException(status_code=400, detail="У вас нет наград, ожидающих выбора")
+        raise HTTPException(status_code=400, detail="You have no pending rewards")
 
-    #  Валидация выбора: проверяем, был ли этот предмет в списке предложенных
-    # pending_loot хранит список диктов: [{"type": "artifact", "id": 1, ...}, ...]
+    # Validate choice: check if this item was in the offered list
+    # pending_loot stores list of dicts: [{"type": "artifact", "id": 1, ...}, ...]
     is_valid_choice = any(
         item["type"] == choice_type and item["id"] == choice_id 
         for item in hero.pending_loot
     )
     
     if not is_valid_choice:
-        raise HTTPException(status_code=400, detail="Этого предмета не было в списке ваших наград")
+        raise HTTPException(status_code=400, detail="This item was not in your reward list")
 
-    #  Начисляем награду
+    # Award the reward
     message = ""
     if choice_type == "artifact":
         artifact = session.get(Artifact, choice_id)
         if not artifact:
-            raise HTTPException(status_code=404, detail="Артефакт не найден в базе")
+            raise HTTPException(status_code=404, detail="Artifact not found in database")
         
-        # Проверка на дубликаты (если артефакты уникальны)
+        # Duplicate check (if artifacts are unique)
         if artifact in hero.artifacts:
-            # Если уже есть, можно дать компенсацию золотом
+            # If already owned, give gold compensation
             hero.gold += 20
-            message = f"У вас уже есть {artifact.name}. Вы получили 20 золотых вместо него."
+            message = f"You already have {artifact.name}. You received 20 gold instead."
         else:
             hero.artifacts.append(artifact)
-            message = f"Вы получили артефакт: {artifact.name}!"
+            message = f"You received artifact: {artifact.name}!"
 
     elif choice_type == "spell":
         spell = session.get(Spell, choice_id)
         if not spell:
-            raise HTTPException(status_code=404, detail="Заклинание не найдено")
+            raise HTTPException(status_code=404, detail="Spell not found")
         
         if spell in hero.spells:
             hero.gold += 15
-            message = f"Вы уже знаете заклинание {spell.name}. Получено 15 золотых."
+            message = f"You already know spell {spell.name}. Received 15 gold."
         else:
             hero.spells.append(spell)
-            message = f"Вы выучили новое заклинание: {spell.name}!"
+            message = f"You learned new spell: {spell.name}!"
     else:
-        raise HTTPException(status_code=400, detail="Неверный тип награды")
+        raise HTTPException(status_code=400, detail="Invalid reward type")
 
-    # Очищаем список выбора, чтобы нельзя было выбрать второй раз
+    # Clear selection list so it can't be chosen again
     hero.pending_loot = []
     
     session.add(hero)
@@ -235,13 +235,13 @@ def pick_loot(
 @router.get("/current_event")
 def get_current_event(hero: Hero = Depends(get_current_hero), session: Session = Depends(get_session)):
     if not hero.active_event_id:
-        raise HTTPException(status_code=400, detail="У вас нет активных событий")
+        raise HTTPException(status_code=400, detail="You have no active events")
         
     event = session.get(Encounters, hero.active_event_id)
     if not event:
-        raise HTTPException(status_code=404, detail="Событие не найдено")
+        raise HTTPException(status_code=404, detail="Event not found")
 
-    # Собираем массив кнопок налету
+    # Build button array on the fly
     choices = [{"text": event.choice_1_text, "value": event.choice_1_val}]
     
     if event.choice_2_text and event.choice_2_val:

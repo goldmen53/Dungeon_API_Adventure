@@ -4,28 +4,28 @@ import random
 def effect_vampirism(hero, monster, damage=0):
     heal = int(damage * 0.15)
     hero.hp = min(hero.max_hp, hero.hp + heal)
-    return f"Вампиризм: +{heal} HP"
+    return f"Vampirism: +{heal} HP"
 
 def effect_berserk(hero, monster, damage=0):
     if hero.hp < (hero.max_hp * 0.3):
-        # Враг получает еще столько же урона (двойной урон)
+        # Enemy takes same damage again (double damage)
         monster.current_hp -= damage 
-        return "БЕРСЕРК! Урон удвоен!"
+        return "BERSERK! Damage doubled!"
     return None
 
 def effect_spikes(hero, monster, damage=0):
     spikes_damage=int(random.randint(monster.min_attack, monster.max_attack) * 0.15)
     monster.current_hp -= spikes_damage
-    return f"Урон шипами +{spikes_damage}"
+    return f"Spike damage +{spikes_damage}"
 
 def effect_atronach(hero, monster, damage=0):
     if hero.mp < hero.max_mp:
         hero.mp += 1
-    return f"Востановлено 1 MP"
+    return f"Restored 1 MP"
 
 def effect_midas(hero, monster, damage=0):
     hero.gold += 1
-    return f"Дает 1 золота"
+    return f"Grants 1 gold"
 
 def effect_damage_5(hero, monster, damage=0):
     damage = 5
@@ -34,13 +34,12 @@ def effect_damage_5(hero, monster, damage=0):
 def effect_mad_crown(hero, monster, damage=0):
     monster.current_hp -= damage 
     hero.hp -= 10
-    return f"Урон удвоен! Корона отнимает -10HP"
+    return f"Damage doubled! Crown takes -10HP"
 
 
 
 
-
-# Реестр: связываем строку из БД с функцией
+# Registry: link string from DB with function
 BATTLE_EFFECTS = {
     "vampirism_15": effect_vampirism,
     "berserk_low_hp": effect_berserk,

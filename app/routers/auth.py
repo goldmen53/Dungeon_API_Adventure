@@ -1,5 +1,5 @@
 import random
-from fastapi import FastAPI, Depends, HTTPException,Body,APIRouter
+from fastapi import FastAPI, Depends, HTTPException,Body,APIRouter, status
 from app import monsters
 from app.database import init_db, get_session
 from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact,HeroRead,Encounters,Spell,User
@@ -28,38 +28,38 @@ def register(
     password: str = Body(...), 
     session: Session = Depends(get_session)
 ):
-    # Проверяем, нет ли уже такого пользователя
+    # Check if user already exists
     existing_user = session.exec(select(User).where(User.username == username)).first()
     if existing_user:
-        raise HTTPException(status_code=400, detail="Пользователь с таким именем уже существует")
+        raise HTTPException(status_code=400, detail="User with this name already exists")
 
-    # Хешируем пароль и сохраняем
+    # Hash password and save
     new_user = User(
         username=username,
-        hashed_password=get_password_hash(password) # Используем функцию из auth_utils
+        hashed_password=get_password_hash(password)
     )
     session.add(new_user)
     session.commit()
-    return {"message": "Пользователь успешно зарегистрирован"}
+    return {"message": "User registered successfully"}
 
 @router.post("/token")
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(), 
     session: Session = Depends(get_session)
 ):
-    # 1. Ищем пользователя по имени
+    # 1. Find user by username
     user = session.exec(select(User).where(User.username == form_data.username)).first()
     
-    # 2. Проверяем существование и пароль
+    # 2. Verify existence and password
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Неверное имя пользователя или пароль",
+            detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # 3. Создаем токен (в 'sub' кладем username или id)
+    # 3. Create token (put username or id in 'sub')
     access_token = create_access_token(data={"sub": user.username})
     
-    # Важно: FastAPI ожидает именно такой формат ответа для OAuth2
+    # Important: FastAPI expects exactly this response format for OAuth2
     return {"access_token": access_token, "token_type": "bearer"}

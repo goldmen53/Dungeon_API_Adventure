@@ -6,31 +6,31 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlmodel import Session, select
-from app.database import get_session  # Твоя функция получения сессии
+from app.database import get_session
 from app.models import User, Hero
 import bcrypt
 from fastapi import Header, HTTPException
 
 
 
-# 1. Настройки безопасности
+# 1. Security settings
 
-SECRET_KEY = "SUPER_SECRET_KEY_DONT_TELL_ANYONE" # Позже вынеси в .env
+SECRET_KEY = "SUPER_SECRET_KEY_DONT_TELL_ANYONE"
 ADMIN_SECRET_TOKEN = "1"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 43200 # Токен живет 24 часа
+ACCESS_TOKEN_EXPIRE_MINUTES = 43200
 
-# 2. Контекст для хеширования паролей
+# 2. Password hashing context
 pwd_context = CryptContext(
     schemes=["bcrypt"], 
     deprecated="auto",
-    bcrypt__ident="2b" # Явно указываем современный идентификатор
+    bcrypt__ident="2b"
 )
 
-# --- ФУНКЦИИ ДЛЯ ПАРОЛЕЙ ---
+# --- PASSWORD FUNCTIONS ---
 
 def get_password_hash(password: str) -> str:
-    # Превращаем строку в байты, солим и хешируем
+    # Convert string to bytes, salt, and hash
     pwd_bytes = password.encode('utf-8')
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(pwd_bytes, salt)
@@ -41,10 +41,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     hashed_bytes = hashed_password.encode('utf-8')
     return bcrypt.checkpw(pwd_bytes, hashed_bytes)
 
-# --- ФУНКЦИИ ДЛЯ ТОКЕНОВ (JWT) ---
+# --- TOKEN (JWT) FUNCTIONS ---
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Создает JWT токен ("пропуск") для игрока"""
+    """Creates JWT token ("pass") for the player"""
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -52,12 +52,12 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
         expire = datetime.utcnow() + timedelta(minutes=1440)
     
     to_encode.update({"exp": expire})
-    # Мы зашиваем ID пользователя в токен
+    # We embed user ID in the token
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-# Указываем FastAPI, где искать токен (в заголовке Authorization: Bearer <token>)
+# Tell FastAPI where to find token (in Authorization: Bearer <token> header)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 def get_current_user(
@@ -66,45 +66,46 @@ def get_current_user(
 ) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Не удалось подтвердить личность",
+        detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        # Расшифровываем токен
+        # Decode the token
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         exp = payload.get("exp")
         if datetime.utcnow() > datetime.fromtimestamp(exp):
             raise credentials_exception
 
-        username: str = payload.get("sub") # Мы договорились класть username или id в sub
+        username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
 
-    # Ищем пользователя в базе
+    # Find user in database
     user = session.exec(select(User).where(User.username == username)).first()
     if user is None:
         raise credentials_exception
     
     return user
 
-# А теперь — бонус для твоей механики "1 юзер = 1 герой"
+
+# Bonus for your "1 user = 1 hero" mechanic
 def get_current_hero(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session)
 ) -> Hero:
-    # Ищем героя в базе
+    # Find hero in database
     hero = session.exec(select(Hero).where(Hero.user_id == current_user.id)).first()
     
-    # Если героя нет вообще
+    # If no hero exists
     if not hero:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Герой не найден. Создайте нового персонажа."
+            detail="Hero not found. Create a new character."
         )
     
-    #ПРОВЕРКА НА СМЕРТЬ 
+    #DEATH CHECK 
     # if hero.hp <= 0:
         
     #     final_gold = hero.gold
@@ -114,10 +115,10 @@ def get_current_hero(
     #     session.commit()
         
     #     raise HTTPException(
-    #         status_code=status.HTTP_410_GONE, # 410 означает, что ресурс удален навсегда
+    #         status_code=status.HTTP_410_GONE, # 410 means resource deleted forever
     #         detail={
     #             "error": "DEAD",
-    #             "message": "Ваш герой пал в бою!",
+    #             "message": "Your hero fell in battle!",
     #             "score": {"gold": final_gold, "level": final_level}
     #         }
     #     )
@@ -128,6 +129,5 @@ def get_current_hero(
 
 def verify_admin(x_admin_token: str = Header(None)):
     if x_admin_token != ADMIN_SECRET_TOKEN:
-        raise HTTPException(status_code=403, detail="Требуется админский доступ")
+        raise HTTPException(status_code=403, detail="Admin access required")
     return True
-

@@ -2,21 +2,21 @@ import random
 
 MONSTER_TEMPLATES = {
     "rat": {
-        "name": "Чумная крыса",
+        "name": "Plague Rat",
         "base_hp": 30,
         "base_attack": (2, 5),
         "base_gold": (1, 5),
         "base_xp": 20
     },
     "goblin": {
-        "name": "Гоблин",
+        "name": "Goblin",
         "base_hp": 50,
         "base_attack": (5, 10),
         "base_gold": (5, 15),
         "base_xp": 25
     },
     "skeleton": {
-        "name": "Скелет",
+        "name": "Skeleton",
         "base_hp": 40,
         "base_attack": (8, 12),
         "base_gold": (0, 10),
@@ -25,19 +25,19 @@ MONSTER_TEMPLATES = {
 }
 
 def create_monster_params(floor: int, is_boss: bool = False):
-    # Выбор шаблона
+    # Template selection
     if is_boss:
-        # Для босса можно сделать отдельную логику, пока возьмем усиленного гоблина
+        # For boss could make separate logic, for now take enhanced goblin
         template = MONSTER_TEMPLATES["goblin"]
-        name_prefix = "БОСС: "
-        scale = 2.0 # Босс в 2 раза сильнее обычного моба на этаже
+        name_prefix = "BOSS: "
+        scale = 2.0 # Boss is 2x stronger than regular mob on floor
     else:
         template = random.choice(list(MONSTER_TEMPLATES.values()))
         name_prefix = ""
         scale = 1.0
 
-    # Скейлинг мобов в зависимости от этажа
-    # Каждые 10 этажей мобы становятся в 2 раза сильнее
+    # Mob scaling based on floor
+    # Every 10 floors mobs become 2x stronger
     if floor < 10 :
         level_factor = 1 *scale
     else: 
@@ -47,7 +47,7 @@ def create_monster_params(floor: int, is_boss: bool = False):
     min_atk = int(template["base_attack"][0] * level_factor)
     max_atk = int(template["base_attack"][1] * level_factor)
     
-    # Скейлинг наград
+    # Reward scaling
     xp = int(template["base_xp"])
     min_g = int(template["base_gold"][0])
     max_g = int(template["base_gold"][1])
