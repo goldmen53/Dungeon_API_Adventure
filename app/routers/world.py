@@ -58,25 +58,24 @@ def get_shop_catalog(hero: Hero = Depends(get_current_hero),session: Session = D
     if not hero:
         raise HTTPException(status_code=404, detail="Герой не найден")
 
-    # Если список товаров пуст, генерируем его
-    if not hero.current_shop_items:
-        # Берем только те, что можно купить (base или store)
+    if hero.current_shop_items is None:
         statement = select(Artifact).where(Artifact.rarity.in_(["base", "store"]))
         all_available = session.exec(statement).all()
         
         count = min(3, len(all_available))
         selection = random.sample(all_available, k=count)
         
-        # Сохраняем ID через запятую ("1,4,7")
+        # Сохраняем ID
         hero.current_shop_items = ",".join([str(a.id) for a in selection])
         session.add(hero)
         session.commit()
     
+    # Если в базе стоит метка "empty", значит всё раскупили
+    if hero.current_shop_items == "empty" or not hero.current_shop_items:
+        return {"hero_gold": hero.gold, "items_for_sale": [], "message": "Магазин пуст"}
+    
     #Получаем объекты артефактов по сохраненным ID
     item_ids = [int(i) for i in hero.current_shop_items.split(",") if i]
-    if not item_ids:
-        return {"hero_gold": hero.gold, "items_for_sale": [], "message": "Магазин пуст"}
-
     shop_items = session.exec(select(Artifact).where(Artifact.id.in_(item_ids))).all()
 
     return {
@@ -136,10 +135,19 @@ def buy_artifact( artifact_id: int, hero: Hero = Depends(get_current_hero), sess
         raise HTTPException(status_code=400, detail="У вас уже есть этот артефакт")
 
     # Проверяем, есть ли этот товар именно в текущем магазине
-    current_items = hero.current_shop_items.split(",") if hero.current_shop_items else []
+    current_items = hero.current_shop_items.split(",")
     if str(artifact_id) not in current_items:
         raise HTTPException(status_code=400, detail="Этого товара больше нет в продаже")
     
+   
+    
+    new_items = [i for i in current_items if i != str(artifact_id)]
+
+    if len(new_items) == 0:
+        hero.current_shop_items = "empty" # Помечаем, что магазин полностью выкуплен
+    else:
+        hero.current_shop_items = ",".join(new_items)
+
 
     # Проводим сделку
     hero.gold -= artifact.cost
