@@ -10,7 +10,7 @@ from app.database import get_session
 from app.models import User, Hero
 import bcrypt
 from fastapi import Header, HTTPException
-
+import re
 
 
 # 1. Security settings
@@ -104,24 +104,6 @@ def get_current_hero(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Hero not found. Create a new character."
         )
-    
-    #DEATH CHECK 
-    # if hero.hp <= 0:
-        
-    #     final_gold = hero.gold
-    #     final_level = hero.level
-        
-    #     session.delete(hero)
-    #     session.commit()
-        
-    #     raise HTTPException(
-    #         status_code=status.HTTP_410_GONE, # 410 means resource deleted forever
-    #         detail={
-    #             "error": "DEAD",
-    #             "message": "Your hero fell in battle!",
-    #             "score": {"gold": final_gold, "level": final_level}
-    #         }
-    #     )
         
     return hero
 
@@ -131,3 +113,46 @@ def verify_admin(x_admin_token: str = Header(None)):
     if x_admin_token != ADMIN_SECRET_TOKEN:
         raise HTTPException(status_code=403, detail="Admin access required")
     return True
+
+def validate_username(username: str):
+    if len(username) < 5:
+        raise HTTPException(
+            status_code=400, 
+            detail="Name must be longer then 5 symbols"
+        )
+    
+    if not re.match(r"^[a-zA-Z0-9]+$", username):
+        raise HTTPException(
+            status_code=400, 
+            detail="Account name must contain only latin letters and numbers and must be longer then 5 symbols"
+        )
+    
+
+def validate_hero_name(name: str):
+    
+    if len(name) < 3:
+        raise HTTPException(
+            status_code=400, 
+            detail="Name must be longer then 3 symbols"
+        )
+
+    if not re.match(r"^[a-zA-Z0-9]+$", name):
+        raise HTTPException(
+            status_code=400, 
+            detail="Hero name must contain only latin letters and numbers and must be longer then 3 symbols"
+        )
+    
+def validate_password(password: str):
+    
+    if len(password) < 6:
+        raise HTTPException(
+            status_code=400, 
+            detail="Password must be longer then 6 symbols"
+        )
+    
+    
+    if not re.match(r"^[\x00-\x7F]+$", password):
+        raise HTTPException(
+            status_code=400, 
+            detail="The password can only contain Latin letters, numbers and special characters."
+        )

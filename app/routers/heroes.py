@@ -1,19 +1,10 @@
 import random
-from fastapi import FastAPI, Depends, HTTPException,Body,APIRouter
-from app import monsters
-from app.database import init_db, get_session
-from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact,HeroRead,Encounters,Spell,User
+from fastapi import  Depends, HTTPException,Body,APIRouter
+from app.database import  get_session
+from app.models import Hero,  Monster, HeroRead,Encounters,User
 from sqlmodel import Session, select
 from app.monsters import create_monster_params
-from fastapi.responses import FileResponse
-from app.effects import BATTLE_EFFECTS
-from app.encounters_effects import ENCAUNTERS_EFFECTS
-from app.spell_effects import SPELLS_EFFECTS
-from typing import List
-from app.utils import give_monster_rewards,get_room_type,init_artifacts,init_spells,init_encounters
-from app.auth_utils import get_current_hero,get_password_hash,create_access_token,verify_password,get_current_user,verify_admin
-from fastapi.security import OAuth2PasswordRequestForm
-
+from app.auth_utils import get_current_hero,validate_hero_name,get_current_user
 
 
 
@@ -23,32 +14,31 @@ router = APIRouter(
 )
 
 @router.post("/create")
-def create_hero(
-    name: str, 
-    session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user) # Get user from token
-):
-    # Check if name already exists
-    existing_name = session.exec(select(Hero).where(Hero.name == name)).first()
+def create_hero(name: str, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+    
+    lowered_name = name.lower()
+    
+    
+    validate_hero_name(lowered_name)
+
+    
+    existing_name = session.exec(select(Hero).where(Hero.name == lowered_name)).first()
     if existing_name:
         raise HTTPException(status_code=400, detail="This name is already taken")
 
-    # Check if user already has a hero
+    
     existing_hero = session.exec(select(Hero).where(Hero.user_id == current_user.id)).first()
     if existing_hero:
         raise HTTPException(status_code=400, detail="You already have an active hero")
 
-    # Create hero, linking to current user ID
-    new_hero = Hero(name=name, user_id=current_user.id)
+    new_hero = Hero(name=lowered_name, user_id=current_user.id)
     session.add(new_hero)
     session.commit()
     session.refresh(new_hero)
     
     return {
-        "message": f"Hero {new_hero.name} entered the dungeon!",
-        "hero_id": new_hero.id,
-        "world_seed": new_hero.world_seed,
-        "start_position": f"Floor: {new_hero.current_room}, Lane: {new_hero.current_lane}"
+        "message": f"Hero {new_hero.name.capitalize()} entered the dungeon!",
+        "hero_id": new_hero.id
     }
 
 

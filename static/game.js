@@ -331,8 +331,8 @@ window.loadShopCatalog = async function() {
 function updateNavigationUI(totalRooms) {
     if (totalRooms === undefined || totalRooms === null) return;
 
-    const floor = Math.floor(totalRooms / 10);
-    const room = totalRooms % 10;
+    const floor = (Math.floor(totalRooms / 10)) +1;
+    const room = (totalRooms % 10) ;
 
     const floorElem = document.getElementById('displayFloor');
     const roomElem = document.getElementById('displayRoom');
@@ -709,13 +709,17 @@ function updateUI() {
     const guestBlock = document.getElementById('guestBlock');
     const userBlock = document.getElementById('userBlock');
     
+    
     if (token) {
+        
         guestBlock.style.display = 'none';
         userBlock.style.display = 'flex';
-        document.getElementById('playerName').textContent = localStorage.getItem('username');
+        document.getElementById('playerName').textContent = formatHeroName(localStorage.getItem('username'));
+        
         
         // Instead of just loadHeroData() we run our bundle:
         checkHeroAndInit(); 
+        
     } else {
         guestBlock.style.display = 'block';
         userBlock.style.display = 'none';
@@ -727,8 +731,26 @@ btnSubmitAuth?.addEventListener('click', async () => {
     const mode = document.getElementById('modalTitle').textContent;
     const username = document.getElementById('authUsername').value;
     const password = document.getElementById('authPassword').value;
-
+    
     if (mode === "Register") {
+
+        
+        const usernameRegex = /^[\x00-\x7F]{5,}$/;
+        
+        const passwordRegex = /^[\x00-\x7F]{6,}$/;
+
+        if (!usernameRegex.test(username)) {
+            showAuthMessage("Account name: Latin only, minimum 5 character");
+            return;
+        }
+
+        if (!passwordRegex.test(password)) {
+            showAuthMessage("Password: Latin/numbers, minimum 6 characters");
+            return;
+        }
+
+
+
         const res = await fetch('http://127.0.0.1:8000/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1117,6 +1139,12 @@ document.getElementById('btnCloseHighScores')?.addEventListener('click', () => {
     document.getElementById('modalHighScores').style.display = 'none';
 });
 
+
+function formatHeroName(name) {
+    if (!name) return "";
+    
+    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+}
 
 // Start
 updateUI();

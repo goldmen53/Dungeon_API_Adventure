@@ -16,14 +16,14 @@ PRESET_SPELLS = [
         "rarity": "base"
     },
     
-    {
-        "name": "Admin:kill",
-        "description": "Kill all",
-        "effect_key": "deal_999999_damage",
-        "mp_cost": 0,
-        "level": 1,
-        "rarity": "admin"
-    },
+    # {
+    #     "name": "Admin:kill",
+    #     "description": "Kill all",
+    #     "effect_key": "deal_999999_damage",
+    #     "mp_cost": 0,
+    #     "level": 1,
+    #     "rarity": "admin"
+    # },
     {
         "name": "Fire Attack",
         "description": "Adds fire damage to normal attacks",

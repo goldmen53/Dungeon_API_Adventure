@@ -1,17 +1,8 @@
-import random
-from fastapi import FastAPI, Depends, HTTPException,Body,APIRouter, status
-from app import monsters
-from app.database import init_db, get_session
-from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact,HeroRead,Encounters,Spell,User
+from fastapi import Depends, HTTPException,Body,APIRouter, status
+from app.database import get_session
+from app.models import User
 from sqlmodel import Session, select
-from app.monsters import create_monster_params
-from fastapi.responses import FileResponse
-from app.effects import BATTLE_EFFECTS
-from app.encounters_effects import ENCAUNTERS_EFFECTS
-from app.spell_effects import SPELLS_EFFECTS
-from typing import List
-from app.utils import give_monster_rewards,get_room_type,init_artifacts,init_spells,init_encounters
-from app.auth_utils import get_current_hero,get_password_hash,create_access_token,verify_password,get_current_user,verify_admin
+from app.auth_utils import get_password_hash,create_access_token,verify_password,validate_hero_name,validate_username,validate_password
 from fastapi.security import OAuth2PasswordRequestForm
 
 
@@ -23,20 +14,21 @@ router = APIRouter(
 
 
 @router.post("/register", status_code=201)
-def register(
-    username: str = Body(...), 
-    password: str = Body(...), 
-    session: Session = Depends(get_session)
-):
-    # Check if user already exists
+def register(username: str = Body(...), password: str = Body(...), session: Session = Depends(get_session)):
+    # Validation
+    validate_username(username)
+    
+    validate_password(password)
+
+    
     existing_user = session.exec(select(User).where(User.username == username)).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="User with this name already exists")
 
-    # Hash password and save
     new_user = User(
-        username=username,
+        username=username.lower(),
         hashed_password=get_password_hash(password)
+
     )
     session.add(new_user)
     session.commit()

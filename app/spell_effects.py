@@ -161,7 +161,7 @@ def effect_fire_spear(hero,session):
 def effect_magic_push(hero,session):
     monster = session.get(Monster, hero.active_monster_id)
 
-    hero_damage = 10 + (hero.total_intelligence * 2) + hero.level*3 + hero.strength 
+    hero_damage = 20 + (hero.total_intelligence * 1.5 ) + hero.level*3 + hero.strength 
     
     log=[]
 
