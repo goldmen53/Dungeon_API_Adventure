@@ -1046,5 +1046,63 @@ function handleRebirth() {
 }
 
 
+// --- 8. РЕКОРДЫ ---
+
+window.showHighScores = async function() {
+    const modal = document.getElementById('modalHighScores');
+    const container = document.getElementById('highScoresList');
+    if (!modal || !container) return;
+
+    modal.style.display = 'block';
+    container.innerHTML = '<p style="text-align: center;">Загрузка легенд...</p>';
+
+    try {
+        const response = await fetch('http://127.0.0.1:8000/highscore/');
+        if (!response.ok) throw new Error("Ошибка загрузки");
+        
+        const scores = await response.json();
+        
+        if (scores.length === 0) {
+            container.innerHTML = '<p style="text-align: center;">Летописи пока пусты. Будь первым!</p>';
+            return;
+        }
+
+        let html = `
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-family: monospace;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--accent-color); color: var(--accent-color);">
+                        <th style="padding: 10px;">Игрок</th>
+                        <th style="padding: 10px;">Герой</th>
+                        <th style="padding: 10px;">Ур.</th>
+                        <th style="padding: 10px;">Этаж</th>
+                        <th style="padding: 10px;">Золото</th>
+                        <th style="padding: 10px;">Дата</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        scores.forEach(s => {
+            html += `
+                <tr style="border-bottom: 1px solid #333;">
+                    <td style="padding: 10px;">${s.username}</td>
+                    <td style="padding: 10px; color: #fff;">${s.hero_name}</td>
+                    <td style="padding: 10px;">${s.level}</td>
+                    <td style="padding: 10px; color: var(--accent-color);">${s.floor}</td>
+                    <td style="padding: 10px; color: #ffd700;">${s.gold}</td>
+                    <td style="padding: 10px; font-size: 0.8rem; color: #888;">${s.date}</td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+
+    } catch (e) {
+        container.innerHTML = `<p style="text-align: center; color: #ff5555;">Не удалось загрузить рекорды: ${e.message}</p>`;
+    }
+}
+
+
 // Старт
 updateUI();

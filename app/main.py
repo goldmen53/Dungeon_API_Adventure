@@ -1,11 +1,11 @@
 # app/main.py
 from fastapi import FastAPI, Depends, HTTPException
 from app.database import init_db, get_session
-from app.models import Monster,Artifact,Spell
+from app.models import Monster,Artifact,Spell,HighScore
 from sqlmodel import Session, select
 from fastapi.responses import FileResponse
 from app.utils import init_artifacts,init_spells,init_encounters
-from app.routers import auth, heroes, battle, world, admin
+from app.routers import auth, heroes, battle, world, admin, highscore
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
@@ -37,6 +37,7 @@ app.include_router(heroes.router)
 app.include_router(battle.router)
 app.include_router(world.router)
 app.include_router(admin.router)
+app.include_router(highscore.router)
 
 
 @app.get("/")

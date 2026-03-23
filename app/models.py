@@ -286,3 +286,12 @@ class Spell(SQLModel, table=True):
     rarity: str = Field(default="base") # base,rare,epic,boss,store
     heroes: List["Hero"] = Relationship(back_populates="spells", link_model=HeroSpellLink)
     
+
+class HighScore(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    username: str
+    hero_name: str
+    level: int
+    floor: int
+    gold: int
+    date: str 

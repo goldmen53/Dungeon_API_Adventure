@@ -2,7 +2,8 @@ import random
 from fastapi import FastAPI, Depends, HTTPException,Body,APIRouter
 from app import monsters
 from app.database import init_db, get_session
-from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact,HeroRead,Encounters,Spell,User
+from app.models import Hero, HeroUpdate, Monster, MonsterUpdate,Artifact,HeroRead,Encounters,Spell,User,HighScore
+from datetime import datetime
 from sqlmodel import Session, select
 from app.monsters import create_monster_params
 from fastapi.responses import FileResponse
@@ -77,6 +78,16 @@ def attack_monster(hero: Hero = Depends(get_current_hero), session: Session = De
     # ПРОВЕРКА СМЕРТИ ГЕРОЯ
     if hero.hp <= 0:
         hero_name = hero.name
+        user = session.get(User, hero.user_id)
+        highscore = HighScore(
+            username=user.username if user else "Аноним",
+            hero_name=hero.name,
+            level=hero.level,
+            floor=hero.current_room,
+            gold=hero.gold,
+            date=datetime.now().strftime("%Y-%m-%d %H:%M")
+        )
+        session.add(highscore)
         session.delete(hero)
         session.commit()
         return {"status": "defeat", "log": log + ["ВЫ ПОГИБЛИ..."], "hero_name": hero_name}
@@ -152,9 +163,20 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
         log.append(f"{monster.name} промахнулся!")
 
     if hero.hp <= 0:
+        hero_name = hero.name
+        user = session.get(User, hero.user_id)
+        highscore = HighScore(
+            username=user.username if user else "Аноним",
+            hero_name=hero.name,
+            level=hero.level,
+            floor=hero.current_room,
+            gold=hero.gold,
+            date=datetime.now().strftime("%Y-%m-%d %H:%M")
+        )
+        session.add(highscore)
         session.delete(hero)
         session.commit()
-        return {"status": "defeat", "log": log + ["Вы погибли!"], "hero_name": hero.name}
+        return {"status": "defeat", "log": log + ["Вы погибли!"], "hero_name": hero_name}
 
     # ЕСЛИ ВСЕ ЖИВЫ
     session.add(monster)
