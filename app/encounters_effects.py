@@ -369,6 +369,6 @@ ENCAUNTERS_EFFECTS = {
     "wishing_well_event": effect_wishing_well,
     "cocoon_event": effect_cocoon,
     "burnt_chest_event" : effect_burnt_chest,
-    "сook_event":effect_cook
+    "cook_event":effect_cook
     
 }

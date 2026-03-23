@@ -120,7 +120,7 @@ PRESET_ENCOUNTERS = [
 {
         "name": "Wandering Cook",
         "description": "A fat goblin is cooking stew right in the middle of the dungeon and offers you to try it! Just for 1 gold.",
-        "effect_key": "сook_event",
+        "effect_key": "cook_event",
         "rarity": "base",
         "choice_1_text": "Try (-1 gold)",
         "choice_1_val": "try",

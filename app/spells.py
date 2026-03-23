@@ -51,7 +51,7 @@ PRESET_SPELLS = [
     {
         "name": "Thunder Bolt",
         "description": "Powerful thunder bolt",
-        "effect_key": "сhain-lightning",
+        "effect_key": "chain-lightning",
         "mp_cost": 10,
         "level": 3,
         "rarity": "rare"

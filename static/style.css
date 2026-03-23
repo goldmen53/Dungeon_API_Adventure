@@ -1,4 +1,4 @@
-/* Базовые настройки и темная тема */
+/* Basic settings and dark theme */
         :root {
             --bg-color: #121212;
             --panel-bg: #1e1e1e;
@@ -16,37 +16,37 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        /* Главный контейнер игры */
+        /* Main game container */
         .game-container {
-            /* Ограничение ширины до 1200px и центрирование */
+            /* Limit width to 1200px and center */
             max-width: 1200px;
             margin: 0 auto;
             height: 100vh;
             
-            /* CSS Grid макет */
+            /* CSS Grid layout */
             display: grid;
-            grid-template-columns: 250px 1fr; /* Левая колонка 250px, правая занимает остаток */
-            grid-template-rows: 65px 1fr 200px; /* Шапка, Центр, Подвал (Лог) */
+            grid-template-columns: 250px 1fr; /* Left column 250px, right takes rest */
+            grid-template-rows: 65px 1fr 200px; /* Header, Center, Footer (Log) */
             gap: 10px;
             padding: 10px;
             box-sizing: border-box;
         }
 
-        /* Общие стили для всех панелей */
+        /* Common styles for all panels */
         .panel {
             background-color: var(--panel-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 15px;
-            overflow-y: auto; /* Скролл, если контент не влезает */
+            overflow-y: auto; /* Scroll if content doesn't fit */
         }
 
-        /* 1. Верхняя панель (Авторизация слева) */
+        /* 1. Top panel (Authorization on left) */
         .top-bar {
-            grid-column: 1 / -1; /* Растягиваем на всю ширину сетки */
+            grid-column: 1 / -1; /* Stretch to full grid width */
             display: flex;
             align-items: center;
-            justify-content: flex-end; /* Прижимаем кнопки влево */
+            justify-content: flex-end; /* Push buttons to the left */
             gap: 10px;
         }
 
@@ -65,7 +65,7 @@
             opacity: 0.8;
         }
 
-        /* 2. Левая панель (Статы) */
+        /* 2. Left panel (Stats) */
         .stats-panel {
             grid-column: 1 / 2;
         }
@@ -82,8 +82,8 @@
             flex-direction: column;
             align-items: center;
             width: 100%;
-            position: relative; /* ВАЖНО: чтобы абсолютные окна не улетали */
-            min-height: 400px;  /* Высота, которую будут занимать окна ивентов */
+            position: relative; /* IMPORTANT: so absolute windows don't fly away */
+            min-height: 400px;  /* Height that event windows will occupy */
         }
 
         .location-header {
@@ -107,7 +107,7 @@
                 gap: 15px;
                 width: 100%;
                 height: 100%;
-                z-index: 1; /* Ниже ивентов */
+                z-index: 1; /* Below events */
             }
 
         .move-btn {
@@ -128,19 +128,19 @@
 
         .move-btn:hover {
             background: #333;
-            border-color: #00ff00; /* Подсветка при наведении */
+            border-color: #00ff00; /* Highlight on hover */
             transform: translateY(-2px);
         }
 
         .empty-slot {
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.03); /* Едва заметный контур */
+            background: rgba(255, 255, 255, 0.03); /* Barely visible outline */
             border: 1px dashed #333;
             border-radius: 12px;
         }
 
-        /* Иконки направлений */
+        /* Direction icons */
         .direction-icon {
             font-size: 2rem;
             margin-bottom: 5px;
@@ -157,13 +157,13 @@
             font-weight: bold;
         }
 
-        /* 3. Карта (Центр) */
+        /* 3. Map (Center) */
         .map-area.panel {
             width: 100%;
-            min-height: 300px; /* Дадим минимальную высоту, чтобы не схлопывалось */
+            min-height: 300px; /* Give minimal height so it doesn't collapse */
             display: flex;
             padding: 10px;
-            box-sizing: border-box; /* Чтобы padding не ломал ширину */
+            box-sizing: border-box; /* So padding doesn't break width */
         }
 
         .upgrade-row {
@@ -201,11 +201,11 @@
             padding: 2px 6px;
             border-radius: 4px;
             font-size: 0.85rem;
-            cursor: default; /* Меняет курсор на вопросик при наведении */
+            cursor: default; /* Changes cursor to question mark on hover */
             border: 1px solid #555;
         }
 
-        /* Подсветка редкости */
+        /* Rarity highlights */
         .rarity-base { border-color: #aaa; }
         .rarity-rare { border-color: #55ff55; color: #55ff55; }
         .rarity-epic { border-color: #bb86fc; color: #bb86fc; }
@@ -213,9 +213,9 @@
 
 
 
-        /* 4. Лог (Низ) */
+        /* 4. Log (Bottom) */
         .log-panel {
-            grid-column: 1 / -1; /* Растягиваем на всю ширину */
+            grid-column: 1 / -1; /* Stretch to full width */
             font-family: 'Courier New', Courier, monospace;
         }
 
@@ -227,34 +227,34 @@
             color: #fff;
         }
 
-        /* --- АДАПТИВНОСТЬ ДЛЯ МОБИЛОК --- */
+        /* --- MOBILE RESPONSIVENESS --- */
         @media (max-width: 768px) {
             .game-container {
-                /* Перестраиваем в одну колонку */
+                /* Rebuild into one column */
                 grid-template-columns: 1fr;
-                /* Шапка (60px), Карта (40vh), Статы (auto), Лог (остаток) */
+                /* Header (60px), Map (40vh), Stats (auto), Log (remainder) */
                 grid-template-rows: 60px 40vh auto 1fr; 
                 height: 100vh;
             }
 
-            /* Переназначаем позиции в сетке */
+            /* Reposition in grid */
             .top-bar { grid-column: 1; grid-row: 1; }
             .map-area { grid-column: 1; grid-row: 2; }
             .stats-panel { grid-column: 1; grid-row: 3; }
             .log-panel { grid-column: 1; grid-row: 4; }
         }
 
-        /* Стили для модального окна */
+        /* Modal window styles */
         .modal {
-            display: none; /* Скрыто по умолчанию */
+            display: none; /* Hidden by default */
             position: fixed;
             z-index: 1000;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.8); /* Затемнение */
-            backdrop-filter: blur(5px); /* Размытие фона */
+            background-color: rgba(0,0,0,0.8); /* Darkening */
+            backdrop-filter: blur(5px); /* Background blur */
         }
 
         .modal-content {
@@ -385,29 +385,29 @@
     height: 100%;
     z-index: 10;
     background-color: var(--panel-bg);
-    box-sizing: border-box; /* Чтобы padding не увеличивал ширину */
-    display: none; /* По умолчанию скрыто, JS включит */
+    box-sizing: border-box; /* So padding doesn't increase width */
+    display: none; /* Hidden by default, JS will enable */
 
-    padding: 30px; /* Большой отступ от краев панели */
+    padding: 30px; /* Large margin from panel edges */
     display: none;
     
-    /* Центрируем содержимое внутри окна ивента */
+    /* Center content inside event window */
     flex-direction: column;
     justify-content: center; 
     align-items: center;
-    overflow-y: auto; /* Если контента много, будет скролл только внутри окна */
+    overflow-y: auto; /* If content is a lot, scroll only inside window */
 }
 
 
 #battleInterface, #restInterface, #shopInterface, #eventInterface {
-    /* Эти ID теперь будут вести себя как оверлеи при появлении */
+    /* These IDs will behave as overlays when shown */
     display: none; 
 }
 
 .map-area.panel {
-    position: relative; /* Окна будут позиционироваться относительно этой панели */
-    padding: 10;        /* Убираем внутренний отступ, чтобы окно прилегало к краям */
-    overflow: hidden;  /* Чтобы ничего не вылетало за границы */
+    position: relative; /* Windows will be positioned relative to this panel */
+    padding: 10;        /* Remove inner padding so window sticks to edges */
+    overflow: hidden;  /* So nothing flies out of bounds */
 }
 
 .death-theme {

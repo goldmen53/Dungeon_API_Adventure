@@ -21,7 +21,7 @@ def effect_cast_fire_ball(hero ,session):
     
     return f"Fireball deals {int(damage)} damage to monster {monster.name}!"
 
-def effect_сhain_lightning(hero ,session):
+def effect_chain_lightning(hero ,session):
     # Find monster by ID saved in hero
     monster = session.get(Monster, hero.active_monster_id)
     if not monster:
@@ -187,7 +187,7 @@ SPELLS_EFFECTS = {
     "fire_attack": effect_fire_attack,
     "ice_attack": effect_ice_attack,
     "crit_attack": effect_crit_attack,
-    "сhain-lightning": effect_сhain_lightning,
+    "chain-lightning": effect_chain_lightning,
     "mana_surge": effect_mana_surge,
     "void_wrath": effect_void_wrath,
     "fire_spear": effect_fire_spear,
