@@ -126,7 +126,7 @@
 
 <div id="modalHighScores" class="modal">
     <div class="modal-content" style="width: 80%; max-width: 800px; background: #1a1a1a; color: #eee; border: 1px solid var(--accent-color);">
-        <span class="close" onclick="document.getElementById('modalHighScores').style.display='none'">&times;</span>
+        <span class="close" id="btnCloseHighScores">&times;</span>
         <h2 style="color: var(--accent-color); text-align: center;">🏆 HALL OF FAME 🏆</h2>
         <div id="highScoresList" style="margin-top: 15px; overflow-x: auto;">
             <p style="text-align: center;">Loading legends...</p>
@@ -150,7 +150,7 @@
 
     </div> <div id="modalAuth" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span class="close" id="btnCloseAuth">&times;</span>
             <h2 id="modalTitle">Login</h2>
             <div id="authMessage" style="margin-bottom: 15px; font-size: 0.9rem; display: none; padding: 10px; border-radius: 4px;"></div>
             <div class="form-group">

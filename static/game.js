@@ -18,7 +18,7 @@ let currentHeroCache = null;
 // Interface elements
 const modalAuth = document.getElementById("modalAuth");
 const btnSubmitAuth = document.getElementById("btnSubmitAuth");
-const closeAuthBtn = document.querySelector(".close");
+const closeAuthBtn = document.getElementById("btnCloseAuth");
 
 // --- 2. HELPER FUNCTIONS ---
 
@@ -789,7 +789,16 @@ document.getElementById('btnLogout')?.addEventListener('click', () => {
     localStorage.clear();
     location.reload();
 });
-if (closeAuthBtn) closeAuthBtn.onclick = () => modalAuth.style.display = "none";
+if (closeAuthBtn) {
+    closeAuthBtn.onclick = () => modalAuth.style.display = "none";
+}
+
+// Also close auth modal when clicking outside
+document.getElementById('modalAuth').addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.style.display = "none";
+    }
+});
 
 // Global functions for HTML
 window.openCreateHeroModal = () => document.getElementById('modalCreateHero').style.display = 'block';
@@ -1102,6 +1111,11 @@ window.showHighScores = async function() {
         container.innerHTML = `<p style="text-align: center; color: #ff5555;">Could not load scores: ${e.message}</p>`;
     }
 }
+
+// Close highscores modal handler
+document.getElementById('btnCloseHighScores')?.addEventListener('click', () => {
+    document.getElementById('modalHighScores').style.display = 'none';
+});
 
 
 // Start
