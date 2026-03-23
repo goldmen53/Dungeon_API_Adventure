@@ -10,15 +10,28 @@
 
     <div class="game-container">
         
-        <header class="top-bar panel">
+        <header class="top-bar panel" style="position: relative; padding-bottom: 10px;">
             <div id="guestBlock">
                 <button id="btnLogin">Войти</button>
                 <button id="btnRegister">Регистрация</button>
             </div>
 
             <div id="userBlock" style="display: none; align-items: center; gap: 15px; width: 100%;">
-                <span id="playerName" style="font-weight: bold; color: var(--accent-color);">Имя игрока</span>
+                <span id="playerName" style="font-weight: bold; color: var(--accent-color); min-width: 100px;">Имя игрока</span>
+                
+                <div id="dungeonInfo" style="flex: 1; text-align: center; font-family: 'Courier New', monospace;">
+                    <span style="color: #888;">ЭТАЖ</span> 
+                    <span id="displayFloor" style="color: #fff; font-weight: bold;">0</span>
+                    <span style="margin: 0 10px; color: #444;">•</span>
+                    <span style="color: #888;">КОМНАТА</span> 
+                    <span id="displayRoom" style="color: var(--accent-color); font-weight: bold;">0</span>
+                </div>
+
                 <button id="btnLogout" style="background-color: #ff5555; color: white; margin-left: auto;">Выйти</button>
+            </div>
+
+            <div id="progressContainer" style="display: none; position: absolute; bottom: 0; left: 0; width: 100%; height: 4px; background: rgba(0,0,0,0.3);">
+                <div id="floorProgressBar" style="width: 0%; height: 100%; background-color: var(--accent-color); transition: width 0.5s ease-in-out; box-shadow: 0 0 10px var(--accent-color);"></div>
             </div>
         </header>
 

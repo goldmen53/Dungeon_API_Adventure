@@ -245,6 +245,8 @@ class HeroRead(BaseModel):
     active_monster_id: Optional[int] = None
     class Config:
         from_attributes = True
+    current_room: int
+    current_lane: int
 
 
 

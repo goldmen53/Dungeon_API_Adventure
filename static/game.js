@@ -55,6 +55,8 @@ async function loadHeroData() {
         if (response.ok) {
             const hero = await response.json();
             currentHeroCache = hero;
+
+            updateNavigationUI(hero.current_room); // Обновляем Этаж/Комнату
             renderStats(hero);
 
             // НОВОЕ: ПРОВЕРКА НА ЛУТ
@@ -62,8 +64,7 @@ async function loadHeroData() {
                 showPickLootModal(hero.pending_loot);
             }
             
-            // ❌ УДАЛИ ИЛИ ЗАКОММЕНТИРУЙ ЭТУ СТРОКУ:
-            // await updateMap(); 
+            
 
         } else if (response.status === 404) {
             currentHeroCache = null;
@@ -327,6 +328,44 @@ window.loadShopCatalog = async function() {
     } catch (e) { console.error("Ошибка загрузки магазина:", e); }
 };
 
+function updateNavigationUI(totalRooms) {
+    if (totalRooms === undefined || totalRooms === null) return;
+
+    const floor = Math.floor(totalRooms / 10);
+    const room = totalRooms % 10;
+
+    const floorElem = document.getElementById('displayFloor');
+    const roomElem = document.getElementById('displayRoom');
+    const progressElem = document.getElementById('floorProgressBar');
+    const progressContainer = document.getElementById('progressContainer');
+
+    // Показываем контейнер полоски
+    if (progressContainer) progressContainer.style.display = 'block';
+
+    if (floorElem && roomElem) {
+        floorElem.textContent = floor;
+        // Если комната 0 и мы прошли хоть одну комнату — это 10-я (Босс)
+        const isBoss = (room === 0 && totalRooms > 0);
+        roomElem.textContent = isBoss ? "10 (БОСС)" : room;
+        roomElem.style.color = isBoss ? "#ff4444" : "var(--accent-color)";
+    }
+
+    if (progressElem) {
+        // Расчет процентов
+        let percentage = (room === 0 && totalRooms > 0) ? 100 : (room / 10) * 100;
+        progressElem.style.width = percentage + "%";
+
+        // Меняем цвет на красный только если это Босс, иначе — основной акцентный
+        if (room === 0 && totalRooms > 0) {
+            progressElem.style.backgroundColor = "#ff4444";
+            progressElem.style.boxShadow = "0 0 15px #ff4444";
+        } else {
+            progressElem.style.backgroundColor = "var(--accent-color)";
+            progressElem.style.boxShadow = "0 0 10px var(--accent-color)";
+        }
+    }
+}
+
 window.buyItem = async function(itemId) {
     const token = localStorage.getItem('token');
     try {
@@ -386,7 +425,10 @@ async function moveHero(targetLane) {
         
         const data = await response.json();
 
-        if (response.ok) {
+        if (response.ok) 
+            {
+            updateDungeonUI(data.current_floor, data.room_type);
+
             if (data.monster) {
                 document.getElementById('monsterName').textContent = data.monster.name;
                 const currentHp = data.monster.current_hp !== undefined ? data.monster.current_hp : data.monster.hp;
@@ -619,6 +661,33 @@ async function sendCast(spellId) {
         console.error("Ошибка каста:", e); 
     }
 }
+
+function updateDungeonUI(floor, type) {
+    const floorElem = document.getElementById('floorNumber');
+    const typeElem = document.getElementById('roomTypeLabel');
+    
+    if (!floorElem || !typeElem) return;
+
+    floorElem.textContent = floor;
+
+    // Маппинг типов из твоего Python кода
+    const typeNames = {
+        'B': 'СКЛЕП (БИТВА)',
+        'S': 'ЛАВКА КУПЦА',
+        'R': 'ПРИВАЛ',
+        'E': 'НЕИЗВЕСТНОСТЬ',
+        'BOSS': 'ЗАЛ БОССА'
+    };
+
+    typeElem.textContent = typeNames[type] || 'ИССЛЕДОВАНИЕ';
+    
+    // Опционально: меняем цвет в зависимости от опасности
+    if (type === 'BOSS') typeElem.style.color = '#ff4444';
+    else if (type === 'S') typeElem.style.color = '#ffd700';
+    else if (type === 'R') typeElem.style.color = '#44ff44';
+    else typeElem.style.color = 'var(--accent-color)';
+}
+
 
 function showLootModal(message) {
     const modal = document.getElementById('modalLoot');
