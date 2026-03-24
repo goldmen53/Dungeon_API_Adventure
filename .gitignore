@@ -1,14 +1,13 @@
-# Виртуальное окружение
+# Virtual environment
 venv/
 __pycache__/
 
-# Локальные переменные и настройки
+# Local settings
 .env
 .vscode/
-.idea/
-.clinerules
 
-# Базы данных (если вдруг создашь локальный файл sqlite)
+
+# Local database
 *.db
 .gitignore
 test.py

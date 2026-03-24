@@ -138,7 +138,7 @@ uvicorn app.main:app --reload
 - **Vitality**: Increases max HP
 - **Agility**: Increases flee chance
 - **Dexterity**: Increases critical hit chance
-- **Intelligence**: Required for certain spells (affects MP)
+- **Intelligence**: Increases magical damage
 
 ## License
 
