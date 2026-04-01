@@ -11,14 +11,10 @@ from app.models import User, Hero
 import bcrypt
 from fastapi import Header, HTTPException
 import re
-
+from app.config import settings
 
 # 1. Security settings
-
-SECRET_KEY = "SUPER_SECRET_KEY_DONT_TELL_ANYONE"
-ADMIN_SECRET_TOKEN = "1"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 43200
 
 # 2. Password hashing context
 pwd_context = CryptContext(
@@ -53,7 +49,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     
     to_encode.update({"exp": expire})
     # We embed user ID in the token
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
@@ -71,7 +67,7 @@ def get_current_user(
     )
     try:
         # Decode the token
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         exp = payload.get("exp")
         if datetime.utcnow() > datetime.fromtimestamp(exp):
             raise credentials_exception
@@ -110,7 +106,7 @@ def get_current_hero(
 
 
 def verify_admin(x_admin_token: str = Header(None)):
-    if x_admin_token != ADMIN_SECRET_TOKEN:
+    if x_admin_token != settings.ADMIN_SECRET_TOKEN:
         raise HTTPException(status_code=403, detail="Admin access required")
     return True
 

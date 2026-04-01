@@ -1,9 +1,10 @@
+import os
 from sqlmodel import create_engine, Session, SQLModel
 from typing import Generator
+from app.config import settings
 
-DATABASE_URL = "postgresql://player:quest@localhost:5432/dungeon_crawler"
- 
-engine = create_engine(DATABASE_URL, echo=False)
+
+engine = create_engine(settings.DATABASE_URL, echo=False)
 
 def init_db():
     """Creates tables in the database based on SQLModel classes."""

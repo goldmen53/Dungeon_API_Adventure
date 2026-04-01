@@ -167,14 +167,14 @@ def effect_magic_push(hero,session):
 
     if random.random() > 0.5:
         
-        damage = hero_damage *2
+        damage = int(hero_damage *2)
         log.append(f"You used magic push on {monster.name} it fell and took {damage} critical damage.")
     else:
         
-        damage = hero_damage
+        damage = int(hero_damage)
         log.append(f"You used magic push on {monster.name} it took {damage} damage.")
 
-    monster.current_hp -= int(damage)
+    monster.current_hp -= damage
     
     return log
 
