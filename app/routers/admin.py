@@ -91,7 +91,7 @@ def create_monster(name:str,level:int, session: Session = Depends(get_session),i
     session.refresh(new_monster)
     return new_monster
 
-@router.delete('admin/monsters/{name}')
+@router.delete('/monsters/{name}')
 def delete_monster(name:str, session:Session = Depends(get_session),is_admin: bool = Depends(verify_admin)):
     statement = select(Monster).where(Monster.name == name)
     monster = session.exec(statement).first()

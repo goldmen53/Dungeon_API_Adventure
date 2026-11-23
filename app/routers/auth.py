@@ -20,13 +20,15 @@ def register(username: str = Body(...), password: str = Body(...), session: Sess
     
     validate_password(password)
 
-    
+    # Usernames are case-insensitive: always store and compare in lower case
+    username = username.lower()
+
     existing_user = session.exec(select(User).where(User.username == username)).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="User with this name already exists")
 
     new_user = User(
-        username=username.lower(),
+        username=username,
         hashed_password=get_password_hash(password)
 
     )
@@ -40,7 +42,7 @@ def login(
     session: Session = Depends(get_session)
 ):
     # 1. Find user by username
-    user = session.exec(select(User).where(User.username == form_data.username)).first()
+    user = session.exec(select(User).where(User.username == form_data.username.lower())).first()
     
     # 2. Verify existence and password
     if not user or not verify_password(form_data.password, user.hashed_password):

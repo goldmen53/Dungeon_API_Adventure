@@ -618,6 +618,9 @@ async function sendCast(spellId) {
         if (data.log) {
             data.log.forEach(msg => addLog(msg));
         }
+        if (!response.ok && data.detail) {
+            addLog(data.detail);
+        }
 
         // 2. Hero death — show mourning window
         if (data.status === "defeat") {

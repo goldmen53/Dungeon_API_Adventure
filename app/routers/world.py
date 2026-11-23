@@ -134,28 +134,18 @@ def buy_artifact( artifact_id: int, hero: Hero = Depends(get_current_hero), sess
     if artifact in hero.artifacts:
         raise HTTPException(status_code=400, detail="You already have this artifact")
 
-    # Check if this item is in current shop
-    current_items = hero.current_shop_items.split(",")
+    # Check if this item is in current shop (shop may not be opened yet -> None)
+    current_items = (hero.current_shop_items or "").split(",")
     if str(artifact_id) not in current_items:
         raise HTTPException(status_code=400, detail="This item is no longer for sale")
-    
-   
-    
+
+    # Remove purchased ID from shop list
     new_items = [i for i in current_items if i != str(artifact_id)]
-
-    if len(new_items) == 0:
-        hero.current_shop_items = "empty" # Mark shop as fully bought
-    else:
-        hero.current_shop_items = ",".join(new_items)
-
+    hero.current_shop_items = ",".join(new_items) if new_items else "empty" # "empty" = fully bought
 
     # Make the deal
     hero.gold -= artifact.cost
     hero.artifacts.append(artifact)
-    
-    # Remove purchased ID from shop list
-    current_items.remove(str(artifact_id))
-    hero.current_shop_items = ",".join(current_items)
 
     session.add(hero)
     session.commit()

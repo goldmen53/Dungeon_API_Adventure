@@ -192,5 +192,8 @@ SPELLS_EFFECTS = {
     "void_wrath": effect_void_wrath,
     "fire_spear": effect_fire_spear,
     "magic_push": effect_magic_push
-    
+
 }
+
+# Spells that can be cast without an enemy (everything else needs a monster)
+NON_COMBAT_SPELLS = {"heal_self", "mana_surge"}

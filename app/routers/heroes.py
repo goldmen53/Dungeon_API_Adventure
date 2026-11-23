@@ -5,6 +5,7 @@ from app.models import Hero,  Monster, HeroRead,Encounters,User
 from sqlmodel import Session, select
 from app.monsters import create_monster_params
 from app.auth_utils import get_current_hero,validate_hero_name,get_current_user
+from app.utils import get_room_type
 
 
 
@@ -71,8 +72,8 @@ def upgrade_stat(stat: str,amount: int,hero: Hero = Depends(get_current_hero), s
     
     elif stat == "vit" and (amount + hero.vitality) <=50:
         hero.vitality += amount
-        # Immediately update max HP by formula
-        hero.hp += (hero.vitality*10)
+        # Each vitality point adds 10 max HP, heal by the same amount
+        hero.hp += amount * 10
         if hero.hp > hero.max_hp:
             hero.hp = hero.max_hp
 
@@ -116,6 +117,10 @@ def move_hero(target_lane: int,hero: Hero = Depends(get_current_hero),session: S
                 status_code=400, 
                 detail=f"You cannot leave while {monster.name} is alive!"
             )
+
+    # EVENT CHECK (must make a choice before leaving the room)
+    if hero.active_event_id:
+        raise HTTPException(status_code=400, detail="Make a choice in the current event first!")
 
     # LANE CHECK (can only move to adjacent lanes)
     allowed_lanes = [hero.current_lane, hero.current_lane - 1, hero.current_lane + 1]

@@ -147,7 +147,8 @@ class Monster(SQLModel, table=True):
     max_attack: int = Field(default=10)
     min_gold: int = Field(default=1)
     max_gold: int = Field(default=10)
-    xp_reward: int = Field(default=20) 
+    xp_reward: int = Field(default=20)
+    is_boss: bool = Field(default=False)
 
 
 

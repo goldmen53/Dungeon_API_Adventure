@@ -61,5 +61,6 @@ def create_monster_params(floor: int, is_boss: bool = False):
         "max_attack": max_atk,
         "min_gold": min_g,
         "max_gold": max_g,
-        "xp_reward": xp
+        "xp_reward": xp,
+        "is_boss": is_boss
     }

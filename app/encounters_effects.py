@@ -18,8 +18,8 @@ def encounter_give_any_stat(hero, session: Session, stat: str):
     
     elif stat == "vit" and hero.vitality < 50:
         hero.vitality += 1
-        # Immediately update max HP by formula
-        hero.hp += (hero.vitality*10)
+        # One vitality point adds 10 max HP, heal by the same amount
+        hero.hp += 10
         if hero.hp > hero.max_hp:
             hero.hp = hero.max_hp
     
@@ -29,8 +29,12 @@ def encounter_give_any_stat(hero, session: Session, stat: str):
         hero.dexterity += 1
 
     else:
-        
-        return "You are already very skilled in this area"
+        # If every stat is already maxed, let the hero go, otherwise they'd be stuck in the event
+        if min(hero.strength, hero.agility, hero.vitality, hero.intelligence, hero.dexterity) >= 50:
+            hero.active_event_id = None
+            session.add(hero)
+            return "The wizard looks at you in awe: there is nothing left to teach you"
+        return "You are already very skilled in this area. Choose another stat"
     
 
     hero.active_event_id = None  # Unlock hero
@@ -134,13 +138,13 @@ def effect_strange_mirror(hero,session,choice):
     if choice == "look_closer": #gives 1/2 of max HP and MP but resets hero XP
         if hero.hp < hero.max_hp:
            if hero.hp + int(hero.max_hp /2) > hero.max_hp:
-                hero.hp == hero.max_hp
+                hero.hp = hero.max_hp
            else :
                 hero.hp += int(hero.max_hp /2)
         
         if hero.mp < hero.max_mp:
            if hero.mp + int(hero.max_mp /2) > hero.max_mp:
-                hero.mp == hero.max_mp
+                hero.mp = hero.max_mp
            else :
                 hero.mp += int(hero.max_mp /2)
 
@@ -353,6 +357,8 @@ def effect_cook(hero,sesion,choice):
             msg = "You ignore the goblin and just walk past. Behind you hear incoherent grumbling. Then he gives you a piece of dough. Walking away you try it. And it\'s very tasty! Your mood improved (HP +20, MP +5) "
             hero.hp +=20
             hero.mp +=5
+        else:
+            msg = "You ignore the goblin and walk past. Behind you hear incoherent grumbling."
 
     hero_overflow_check(hero)
     hero.active_event_id = None

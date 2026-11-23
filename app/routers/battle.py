@@ -9,7 +9,7 @@ from app.monsters import create_monster_params
 from fastapi.responses import FileResponse
 from app.effects import BATTLE_EFFECTS
 from app.encounters_effects import ENCAUNTERS_EFFECTS
-from app.spell_effects import SPELLS_EFFECTS
+from app.spell_effects import SPELLS_EFFECTS, NON_COMBAT_SPELLS
 from typing import List
 from app.utils import give_monster_rewards,get_room_type,init_artifacts,init_spells,init_encounters
 from app.auth_utils import get_current_hero,get_password_hash,create_access_token,verify_password,get_current_user,verify_admin
@@ -108,9 +108,9 @@ def attack_monster(hero: Hero = Depends(get_current_hero), session: Session = De
 @router.post("/cast/{spell_id}")
 def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero = Depends(get_current_hero)):
     monster = session.get(Monster, hero.active_monster_id) if hero.active_monster_id else None
-    if not hero:
-        raise HTTPException(status_code=404, detail="Hero not found")
-    
+    if monster and monster.current_hp <= 0:
+        monster = None
+
     spell = session.get(Spell, spell_id)
     if not spell:
         raise HTTPException(status_code=404, detail="Spell not found")
@@ -122,25 +122,37 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
     # Enough mana?
     if hero.mp < spell.mp_cost:
         raise HTTPException(status_code=400, detail="Not enough mana!")
-    
-    log=[]
-
-
-    # Artifact effects
-    for art in hero.artifacts:
-        handler_art = BATTLE_EFFECTS.get(art.effect_key)
-        if handler_art:
-            effect_msg = handler_art(hero, monster) 
-            if effect_msg: log.append(effect_msg)
-
 
     handler = SPELLS_EFFECTS.get(spell.effect_key)
-    if handler:
-        # Spend mana before casting
-        hero.mp -= spell.mp_cost
-        
-        # Pass session, hero, and possibly monster (if battle ongoing)
-        log = [handler(hero, session)] 
+    if not handler:
+        raise HTTPException(status_code=500, detail="This spell has no effect implemented")
+
+    # Attack spells need a living target
+    if monster is None and spell.effect_key not in NON_COMBAT_SPELLS:
+        raise HTTPException(status_code=400, detail="There is no enemy here to cast this spell at")
+
+    log = []
+
+    # Artifact effects only trigger in battle (they need a monster)
+    if monster:
+        for art in hero.artifacts:
+            handler_art = BATTLE_EFFECTS.get(art.effect_key)
+            if handler_art:
+                effect_msg = handler_art(hero, monster)
+                if effect_msg: log.append(effect_msg)
+
+    # Spend mana before casting
+    hero.mp -= spell.mp_cost
+    result = handler(hero, session)
+    # Some effects return a string, others a list of strings
+    log += result if isinstance(result, list) else [result]
+
+    # Out of battle (e.g. healing): no monster turn
+    if monster is None:
+        session.add(hero)
+        session.commit()
+        session.refresh(hero)
+        return {"status": "cast", "log": log, "hero": hero_to_dict(hero)}
 
     # Monster death check
     if monster.current_hp <= 0:
@@ -184,9 +196,17 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
     session.commit()
     session.refresh(hero)
 
-    # Build complete hero data for frontend
+    return {
+        "status": "ongoing",
+        "log": log,
+        "hero": hero_to_dict(hero),
+        "monster_hp": f"{monster.current_hp}/{monster.max_hp}"
+    }
+
+
+def hero_to_dict(hero: Hero) -> dict:
+    """Hero fields plus computed properties, for the frontend."""
     hero_data = hero.model_dump()
-    # Manually add computed properties
     hero_data.update({
         "max_hp": hero.max_hp,
         "total_strength": hero.total_strength,
@@ -197,10 +217,4 @@ def cast_spell(spell_id:int ,session: Session = Depends(get_session),hero: Hero 
         "total_flee": hero.total_flee,
         "total_crit": hero.total_crit
     })
-
-    return {
-        "status": "ongoing",
-        "log": log,
-        "hero": hero_data,
-        "monster_hp": f"{monster.current_hp}/{monster.max_hp}"
-    }
+    return hero_data

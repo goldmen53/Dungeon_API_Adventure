@@ -18,7 +18,7 @@ def give_monster_rewards(hero, monster,session):
     # Clear battle state
     hero.active_monster_id = None
 
-    is_boss = getattr(monster, "is_boss", False) 
+    is_boss = monster.is_boss
     loot_drop_triggered = False
     loot_msg = ""
 
@@ -34,8 +34,8 @@ def give_monster_rewards(hero, monster,session):
     # GENERATE OFFERS (2 artifacts + 2 spells)
     if loot_drop_triggered:
         # Get all available artifacts and spells
-        all_artifacts = session.exec(select(Artifact)).all()
-        all_spells = session.exec(select(Spell)).all()
+        all_artifacts = session.exec(select(Artifact).where(Artifact.rarity != "admin")).all()
+        all_spells = session.exec(select(Spell).where(Spell.rarity != "admin")).all()
 
         # Select random ones (check if enough items in DB)
         sampled_arts = random.sample(all_artifacts, k=min(2, len(all_artifacts)))
@@ -123,7 +123,7 @@ def init_encounters(session: Session):
 def generate_loot_choices(session):
     # Take 2 random artifacts
     statement_arts = select(Artifact).where(Artifact.rarity != "admin")
-    all_arts = session.exec(statement_spell).all()
+    all_arts = session.exec(statement_arts).all()
     arts_sample = random.sample(all_arts, k=2)
     
     # Take 2 random spells
